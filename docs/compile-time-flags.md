@@ -21,7 +21,7 @@ This document is a template. Sections marked with `COMPILE_FLAG_REPORT` markers 
 ## Flags (generated)
 
 <!-- BEGIN COMPILE_FLAG_REPORT:FLAGS -->
-Total flags: 54
+Total flags: 55
 
 ### Features (HAS_*)
 
@@ -68,6 +68,7 @@ Total flags: 54
 - **IMAGE_API_MAX_SIZE_BYTES** default: `(100 * 1024)` — Max bytes accepted for full image uploads (JPEG).
 - **IMAGE_API_MAX_TIMEOUT_MS** default: `(86400UL * 1000UL)` — Maximum image display timeout in milliseconds.
 - **IMAGE_STRIP_BATCH_MAX_ROWS** default: `16` — Max rows batched per LCD transaction when decoding JPEG strips.
+- **LCD_QSPI_FREQ_HZ** default: `(no default)` — QSPI frequency (Hz).
 - **LVGL_BUFFER_PREFER_INTERNAL** default: `false` — Prefer internal RAM over PSRAM for LVGL draw buffer allocation.
 - **LVGL_BUFFER_SIZE** default: `(DISPLAY_WIDTH * 10)` — LVGL draw buffer size in pixels (larger = faster, more RAM).
 - **LVGL_TICK_PERIOD_MS** default: `5` — LVGL tick period in milliseconds.
@@ -228,6 +229,8 @@ Legend: ✅ = enabled/true, blank = disabled/false, ? = unknown/undefined
 - **LCD_BL_PIN**
   - src/app/drivers/arduino_gfx_driver.cpp
 - **LCD_QSPI_CS**
+  - src/app/drivers/arduino_gfx_driver.cpp
+- **LCD_QSPI_FREQ_HZ**
   - src/app/drivers/arduino_gfx_driver.cpp
 - **LED_ACTIVE_HIGH**
   - src/app/board_config.h
