@@ -39,7 +39,7 @@ private:
     lv_obj_t* grid_bar_bg = nullptr;
     lv_obj_t* grid_bar_fill = nullptr;
 
-    // T2 Warning (v1): breathing background + contrast remapping.
+    // T2 Warning (v2): red/black flip + contrast remapping.
     enum class AlarmState : uint8_t {
         Off = 0,
         Active,
@@ -50,6 +50,7 @@ private:
     lv_timer_t* alarmTimer = nullptr;
     uint8_t alarmPhase = 0;   // 0..255 (black -> peak)
     int8_t alarmDir = 1;      // +1 to ramp up, -1 to ramp down
+    uint32_t alarmToggleMs = 0;
 
     // Latched background peak color for the current alarm episode.
     lv_color_t alarmPeakColor = lv_color_make(255, 0, 0);

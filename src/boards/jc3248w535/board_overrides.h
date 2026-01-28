@@ -34,9 +34,9 @@
 // Panel height in pixels.
 #define DISPLAY_HEIGHT 480
 
-// Software rotation via LVGL (1 = 90° landscape)
+// Software rotation via LVGL (3 = 180° from landscape)
 // UI rotation (LVGL).
-#define DISPLAY_ROTATION 1
+#define DISPLAY_ROTATION 3
 
 // LVGL buffer size - larger for 320x480 display
 // Increase to reduce the number of flush chunks LVGL emits per frame.
@@ -47,6 +47,8 @@
 // QSPI pins (from sample/esp_bsp.h)
 // QSPI host peripheral.
 #define LCD_QSPI_HOST SPI2_HOST
+// QSPI frequency (Hz).
+#define LCD_QSPI_FREQ_HZ 40000000UL
 // QSPI chip select pin.
 #define LCD_QSPI_CS   45
 // QSPI pixel clock pin.

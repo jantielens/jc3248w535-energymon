@@ -233,8 +233,8 @@ void setup()
   display_manager_set_splash_status("Ready!");
   delay(2000);  // 2 seconds to see splash + status updates
 
-  // Navigate to info screen
-  display_manager_show_info();
+  // Navigate to energy monitor screen
+  display_manager_show_energy_monitor();
 
   // Start the screen saver inactivity timer after the first runtime screen is visible.
   // This avoids counting boot + splash time as "inactivity".

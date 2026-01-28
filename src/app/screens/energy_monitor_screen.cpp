@@ -192,7 +192,7 @@ void EnergyMonitorScreen::create() {
     init_bar(&home_bar_bg, &home_bar_fill, 0);
     init_bar(&grid_bar_bg, &grid_bar_fill, col_dx);
 
-    // Timer drives the alarm animation (background + contrast remap).
+    // Timer drives the alarm flip (background + contrast remap).
     // Start paused; it will be resumed when a T2 breach is detected.
     if (!alarmTimer) {
         alarmTimer = lv_timer_create(EnergyMonitorScreen::alarmTimerCb, 40 /*ms*/, this);
@@ -209,6 +209,7 @@ void EnergyMonitorScreen::destroy() {
         alarmState = AlarmState::Off;
         alarmPhase = 0;
         alarmDir = 1;
+        alarmToggleMs = 0;
         alarmPeakColor = lv_color_make(255, 0, 0);
         alarmClearStartMs = 0;
 
@@ -255,41 +256,27 @@ void EnergyMonitorScreen::alarmTick() {
     if (!screen || !background) return;
     if (alarmState == AlarmState::Off) return;
 
-    const uint32_t tick_ms = alarmTimer ? alarmTimer->period : 40;
+    if (alarmState == AlarmState::Exiting) {
+        alarmState = AlarmState::Off;
+        alarmPhase = 0;
+        alarmDir = 1;
+        alarmToggleMs = 0;
+        alarmPeakColor = lv_color_make(255, 0, 0);
+        alarmClearStartMs = 0;
+        if (alarmTimer) lv_timer_pause(alarmTimer);
+        applyNormalStyles();
+        return;
+    }
+
     uint16_t cycle_ms = config ? config->energy_alarm_pulse_cycle_ms : 2000;
     if (cycle_ms < 200) cycle_ms = 200;
     if (cycle_ms > 10000) cycle_ms = 10000;
-
-    // 0->255 in half a cycle.
-    const float step_f = (255.0f * 2.0f * (float)tick_ms) / (float)cycle_ms;
-    uint8_t step_active = (uint8_t)lroundf(step_f);
-    if (step_active < 1) step_active = 1;
-
-    uint8_t step_exit = (uint8_t)(step_active + (step_active / 2)); // ~1.5x faster
-    if (step_exit < step_active) step_exit = step_active;
-
-    const uint8_t step = (alarmState == AlarmState::Exiting) ? step_exit : step_active;
-
-    int next = (int)alarmPhase + (int)alarmDir * (int)step;
-    if (next >= 255) {
-        next = 255;
-        alarmDir = -1;
-    } else if (next <= 0) {
-        next = 0;
-        // If we're exiting and reached dark, stop the alarm cleanly.
-        if (alarmState == AlarmState::Exiting) {
-            alarmState = AlarmState::Off;
-            alarmPhase = 0;
-            alarmPeakColor = lv_color_make(255, 0, 0);
-            alarmClearStartMs = 0;
-            if (alarmTimer) lv_timer_pause(alarmTimer);
-            applyNormalStyles();
-            return;
-        }
-        alarmDir = 1;
+    const uint32_t half_cycle_ms = (uint32_t)cycle_ms / 2u;
+    const uint32_t now = lv_tick_get();
+    if (alarmToggleMs == 0 || (uint32_t)(now - alarmToggleMs) >= half_cycle_ms) {
+        alarmPhase = (alarmPhase == 0) ? 255 : 0;
+        alarmToggleMs = now;
     }
-
-    alarmPhase = (uint8_t)next;
     applyAlarmStyles();
 }
 
@@ -496,6 +483,8 @@ void EnergyMonitorScreen::update() {
             }
             alarmState = AlarmState::Active;
             alarmDir = 1;
+            alarmPhase = 255;
+            alarmToggleMs = 0;
             if (alarmTimer) lv_timer_resume(alarmTimer);
         }
     } else {
@@ -507,6 +496,7 @@ void EnergyMonitorScreen::update() {
                 alarmState = AlarmState::Exiting;
                 alarmDir = -1;
                 alarmClearStartMs = 0;
+                alarmToggleMs = 0;
                 if (alarmTimer) lv_timer_resume(alarmTimer);
             } else {
                 if (alarmClearStartMs == 0) alarmClearStartMs = now;
@@ -514,6 +504,7 @@ void EnergyMonitorScreen::update() {
                     alarmState = AlarmState::Exiting;
                     alarmDir = -1;
                     alarmClearStartMs = 0;
+                    alarmToggleMs = 0;
                     if (alarmTimer) lv_timer_resume(alarmTimer);
                 }
             }
