@@ -2,9 +2,11 @@
 #include "board_config.h"
 #include "config_manager.h"
 #include "web_portal.h"
+#include "web_portal_config.h"
 #include "log_manager.h"
 #include "mqtt_manager.h"
 #include "device_telemetry.h"
+#include "energy_monitor.h"
 #if HEALTH_HISTORY_ENABLED
 #include "health_history.h"
 #endif
@@ -100,6 +102,14 @@ void setup()
   device_config.backlight_brightness = 100;  // Default to full brightness
   device_config.mqtt_port = 0;
   device_config.mqtt_interval_seconds = 0;
+
+  // Energy Monitor UI defaults (kW)
+  device_config.energy_solar_bar_max_kw = 3.0f;
+  device_config.energy_home_bar_max_kw = 3.0f;
+  device_config.energy_grid_bar_max_kw = 3.0f;
+
+  // Energy monitor state (updated by MQTT, read by LVGL task)
+  energy_monitor_init();
 
   #if HAS_DISPLAY
   // Screen saver defaults (v1)
@@ -245,12 +255,18 @@ void loop()
   // Handle web portal (DNS for captive portal)
   web_portal_handle();
 
+  // Cleanup stale chunked config uploads
+  web_portal_config_loop();
+
   #if HAS_IMAGE_API
   // Process pending image uploads (deferred decoding)
   web_portal_process_pending_images();
   #endif
 
   #if HAS_MQTT
+  if (web_portal_config_take_mqtt_reconnect_request()) {
+    mqtt_manager_request_reconnect();
+  }
   mqtt_manager.loop();
   #endif
 

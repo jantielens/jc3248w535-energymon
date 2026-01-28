@@ -180,6 +180,7 @@ Legend: ✅ = enabled/true, blank = disabled/false, ? = unknown/undefined
   - src/app/ha_discovery.h
   - src/app/mqtt_manager.cpp
   - src/app/mqtt_manager.h
+  - src/app/web_portal_config.cpp
 - **HAS_TOUCH**
   - src/app/app.ino
   - src/app/board_config.h

@@ -21,6 +21,7 @@ Skip the boilerplate and start building. ESP32 Arduino template with automated b
   - **Works With or Without a Display**: Devices without displays build and run normally
   - **Display/Touch HAL**: Unified `DisplayDriver` / `TouchDriver` interfaces with `DisplayManager` / `TouchManager` lifecycle
   - **LVGL UI Framework**: Multi-screen UI support (when `HAS_DISPLAY` is enabled for a board)
+  - **Energy Monitor Screen**: MQTT-driven Solar/Home/Grid visualization with per-category thresholds
   - **PNG Assets (LVGL)**: Top-level PNGs in `assets/png/` are converted to LVGL `lv_img_dsc_t` symbols (e.g. `img_logo`) during build for display-enabled boards
 
 - **🎯 Multi-Board Made Easy**
