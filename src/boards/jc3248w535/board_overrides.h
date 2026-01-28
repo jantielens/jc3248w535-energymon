@@ -90,7 +90,9 @@
 // I2C frequency (Hz).
 #define TOUCH_I2C_FREQ_HZ 400000
 
+// Touch reset pin.
 #define TOUCH_RST -1
+// Touch interrupt pin.
 #define TOUCH_INT -1
 
 // Touch calibration (from sample: dispcfg.h)
