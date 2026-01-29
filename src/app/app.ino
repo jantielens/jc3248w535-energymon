@@ -42,6 +42,12 @@ unsigned long lastHeartbeat = 0;
 const unsigned long WIFI_CHECK_INTERVAL = 10000; // 10 seconds
 unsigned long lastWiFiCheck = 0;
 
+#if HAS_MQTT && HAS_DISPLAY
+// Presence keepalive while MQTT wake state is active
+const unsigned long PRESENCE_KEEPALIVE_INTERVAL = 5000; // 5 seconds
+unsigned long lastPresenceKeepAlive = 0;
+#endif
+
 // WiFi event handlers for connection lifecycle monitoring
 void onWiFiConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   LOGI("WiFi", "Connected to AP - waiting for IP");
@@ -274,6 +280,20 @@ void loop()
   device_telemetry_check_tripwires();
 
   unsigned long currentMillis = millis();
+
+  #if HAS_MQTT && HAS_DISPLAY
+  if (config_loaded && device_config.screen_saver_enabled && device_config.screen_saver_timeout_seconds > 0) {
+    if (mqtt_manager.presenceActive()) {
+      if (lastPresenceKeepAlive == 0 || (currentMillis - lastPresenceKeepAlive) >= PRESENCE_KEEPALIVE_INTERVAL) {
+        const bool asleep = screen_saver_manager_is_asleep();
+        screen_saver_manager_notify_activity(asleep);
+        lastPresenceKeepAlive = currentMillis;
+      }
+    } else {
+      lastPresenceKeepAlive = 0;
+    }
+  }
+  #endif
 
   // WiFi watchdog - monitor connection and reconnect if needed
   // Only run if we're not in AP mode (AP mode is the fallback, should stay active)

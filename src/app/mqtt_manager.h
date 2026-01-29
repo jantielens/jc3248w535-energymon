@@ -33,6 +33,8 @@ public:
     bool enabled() const;
     bool publishEnabled() const;
     bool connected();
+    bool presenceActive() const { return _presence_active; }
+    unsigned long presenceLastUpdateMs() const { return _last_presence_update_ms; }
 
     unsigned long lastHealthPublishMs() const { return _last_health_publish_ms; }
 
@@ -79,6 +81,8 @@ private:
     unsigned long _last_reconnect_attempt_ms = 0;
     unsigned long _last_health_publish_ms = 0;
     unsigned long _last_energy_subscribe_attempt_ms = 0;
+    bool _presence_active = false;
+    unsigned long _last_presence_update_ms = 0;
 };
 
 // Global instance (defined in app.ino)

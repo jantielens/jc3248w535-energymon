@@ -145,6 +145,8 @@ void MqttManager::begin(const DeviceConfig *config, const char *friendly_name, c
     _last_health_publish_ms = 0;
     _energy_subscriptions_active = false;
     _last_energy_subscribe_attempt_ms = 0;
+    _presence_active = false;
+    _last_presence_update_ms = 0;
 }
 
 void MqttManager::subscribeEnergyMonitorTopics() {
@@ -183,6 +185,8 @@ void MqttManager::requestReconnect() {
     _energy_subscriptions_active = false;
     _last_reconnect_attempt_ms = 0;
     _last_energy_subscribe_attempt_ms = 0;
+    _presence_active = false;
+    _last_presence_update_ms = 0;
 }
 
 void MqttManager::handleIncomingMessage(const char *topic, const uint8_t *payload, unsigned int length) {
@@ -220,7 +224,13 @@ void MqttManager::handleIncomingMessage(const char *topic, const uint8_t *payloa
     }
 
     if (strlen(_config->mqtt_wake_topic) > 0 && strcmp(topic, _config->mqtt_wake_topic) == 0) {
-        if (match_value_using_path(payload, length, _config->mqtt_wake_value_path, _config->mqtt_wake_payload)) {
+        const bool active = match_value_using_path(payload, length, _config->mqtt_wake_value_path, _config->mqtt_wake_payload);
+        _last_presence_update_ms = now;
+        if (active != _presence_active) {
+            _presence_active = active;
+            LOGI("MQTT", "Presence state: %s", active ? "active" : "inactive");
+        }
+        if (active) {
             LOGI("MQTT", "Wake trigger: %s -> %.*s", topic, (int)length, (const char*)payload);
             screen_saver_manager_notify_activity(true);
         }
