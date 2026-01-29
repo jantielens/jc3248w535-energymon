@@ -80,7 +80,10 @@ void Arduino_GFX_Driver::init() {
     LOGI("GFX", "Canvas created with rotation=%d", displayRotation);
     
     // Initialize display via canvas (canvas->begin() initializes the underlying display)
-    if (!canvas->begin(40000000UL)) {  // 40MHz QSPI frequency
+    #ifndef LCD_QSPI_FREQ_HZ
+    #define LCD_QSPI_FREQ_HZ 40000000UL
+    #endif
+    if (!canvas->begin(LCD_QSPI_FREQ_HZ)) {
         LOGE("GFX", "Failed to initialize display");
         return;
     }

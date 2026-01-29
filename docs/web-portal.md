@@ -202,7 +202,16 @@ Real-time device health monitoring integrated as a header badge with expandable 
 
 **Sections:**
 - **👋 Hello World**: Welcome message with customization tip
-- **⚙️ Sample Settings**: Example configuration field (dummy_setting)
+- **🧩 Consumer Indicators (Optional)**: Up to 5 consumer topics, thresholds, icon IDs, plus a shared icon color
+- **⚡ Energy Monitor**: Optional MQTT-driven energy monitor settings
+  - MQTT topics + value paths for Solar/Grid readings
+  - Consumer indicators: up to 5 consumer topics, thresholds, and icon IDs
+  - Bar scaling (kW) for Solar/Home/Grid
+  - Per-category colors + thresholds (T0/T1/T2)
+  - Warning behavior (breathing pulse, clear delay, hysteresis)
+- **🌙 Screen Saver Wake (MQTT)**: Optional wake trigger via MQTT
+  - Wake topic + value path + expected payload
+  - When the last known value matches, the device stays awake (retained state recommended)
 
 **Layout:** Two sections side-by-side on desktop (≥768px), stacked on mobile
 
@@ -521,7 +530,6 @@ Returns current device configuration (passwords excluded).
   "gateway": "",
   "dns1": "",
   "dns2": "",
-  "dummy_setting": "",
 
   "basic_auth_enabled": false,
   "basic_auth_username": "",
@@ -541,6 +549,11 @@ Returns current device configuration (passwords excluded).
 - Some fields are build-time gated.
   - Display-related fields (backlight + screen saver) are present when `HAS_DISPLAY` is enabled.
   - Other feature-specific fields may be present depending on firmware configuration.
+ - Energy consumer indicators use fields:
+   - `energy_consumer_1_topic` ... `energy_consumer_5_topic`
+   - `energy_consumer_1_threshold` ... `energy_consumer_5_threshold`
+   - `energy_consumer_1_icon_id` ... `energy_consumer_5_icon_id`
+  - `energy_consumer_icon_color` (hex color applied to all consumer icons)
 
 #### `POST /api/config`
 
@@ -557,7 +570,6 @@ Save new configuration. Device reboots after successful save.
   "gateway": "192.168.1.1",
   "dns1": "8.8.8.8",
   "dns2": "8.8.4.4",
-  "dummy_setting": "value",
 
   "basic_auth_enabled": true,
   "basic_auth_username": "admin",
@@ -588,6 +600,7 @@ Save new configuration. Device reboots after successful save.
 - In Core Mode (AP mode), Basic Auth settings cannot be changed via `POST /api/config`.
 - Device automatically reboots after successful save
 - Web portal automatically polls for reconnection (see [Automatic Reconnection](#automatic-reconnection-after-reboot))
+- Energy consumer indicator fields follow the same naming scheme as GET: `energy_consumer_{1..5}_topic`, `energy_consumer_{1..5}_threshold`, `energy_consumer_{1..5}_icon_id`, `energy_consumer_icon_color`
 
 #### `DELETE /api/config`
 

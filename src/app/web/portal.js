@@ -92,6 +92,98 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
+// ===== ENERGY MONITOR UI HELPERS =====
+
+const ENERGY_CONSUMER_COUNT = 5;
+const ENERGY_CONSUMER_ICON_OPTIONS = [
+    { id: 0, label: 'Car' },
+    { id: 1, label: 'Dishwasher' },
+    { id: 2, label: 'Washing Machine' },
+    { id: 3, label: 'Dryer' },
+    { id: 4, label: 'Heat' },
+    { id: 5, label: 'Cooling' },
+    { id: 6, label: 'Kitchen' },
+    { id: 7, label: 'Home' },
+    { id: 8, label: 'Grid' },
+    { id: 9, label: 'Sun' },
+    { id: 10, label: 'Logo' },
+];
+
+function formatKwForLabel(value) {
+    if (value === null || value === undefined) return '';
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '';
+    const rounded = Math.round(num * 10) / 10;
+    return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1));
+}
+
+function updateEnergyThresholdMapLabels(prefix) {
+    if (!prefix) return;
+
+    const t0El = document.getElementById(`${prefix}_threshold_0_kw`);
+    const t1El = document.getElementById(`${prefix}_threshold_1_kw`);
+    const t2El = document.getElementById(`${prefix}_threshold_2_kw`);
+
+    const t0 = t0El ? Number(t0El.value) : NaN;
+    const t1 = t1El ? Number(t1El.value) : NaN;
+    const t2 = t2El ? Number(t2El.value) : NaN;
+
+    const setValueLabel = (id, value, fallback) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const s = formatKwForLabel(value);
+        el.textContent = s ? `${s} kW` : fallback;
+    };
+
+    setValueLabel(`${prefix}_t0_value`, t0, 'T0');
+    setValueLabel(`${prefix}_t1_value`, t1, 'T1');
+    setValueLabel(`${prefix}_t2_value`, t2, 'T2');
+}
+
+function initEnergyMonitorThresholdMaps() {
+    document.querySelectorAll('.energy-threshold-map[data-prefix]').forEach(container => {
+        const prefix = container.getAttribute('data-prefix');
+        if (!prefix) return;
+
+        if (container.dataset.energyMapInit === '1') {
+            updateEnergyThresholdMapLabels(prefix);
+            return;
+        }
+
+        const ids = [
+            `${prefix}_threshold_0_kw`,
+            `${prefix}_threshold_1_kw`,
+            `${prefix}_threshold_2_kw`
+        ];
+
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', () => updateEnergyThresholdMapLabels(prefix));
+        });
+
+        container.dataset.energyMapInit = '1';
+        updateEnergyThresholdMapLabels(prefix);
+    });
+}
+
+function initEnergyConsumerIconSelects() {
+    const selects = document.querySelectorAll('select[data-consumer-icon]');
+    if (!selects || selects.length === 0) return;
+
+    selects.forEach(select => {
+        if (select.dataset.iconInit === '1') return;
+        select.innerHTML = '';
+        ENERGY_CONSUMER_ICON_OPTIONS.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = String(opt.id);
+            option.textContent = opt.label;
+            select.appendChild(option);
+        });
+        select.dataset.iconInit = '1';
+    });
+}
+
 /**
  * Show unified reboot overlay and handle reconnection
  * @param {Object} options - Configuration options
@@ -593,7 +685,6 @@ async function loadConfig() {
         setValueIfExists('dns2', config.dns2);
         
         // Dummy setting
-        setValueIfExists('dummy_setting', config.dummy_setting);
 
         // MQTT settings
         setValueIfExists('mqtt_host', config.mqtt_host);
@@ -606,6 +697,66 @@ async function loadConfig() {
             mqttPwdField.value = '';
             mqttPwdField.placeholder = hasConfig ? '(saved - leave blank to keep)' : '';
         }
+
+        // Energy Monitor MQTT subscriptions
+        setValueIfExists('mqtt_topic_solar', config.mqtt_topic_solar);
+        setValueIfExists('mqtt_topic_grid', config.mqtt_topic_grid);
+        setValueIfExists('mqtt_solar_value_path', config.mqtt_solar_value_path);
+        setValueIfExists('mqtt_grid_value_path', config.mqtt_grid_value_path);
+
+        // Energy Monitor consumers
+        for (let i = 1; i <= ENERGY_CONSUMER_COUNT; i++) {
+            const topicKey = `energy_consumer_${i}_topic`;
+            const thresholdKey = `energy_consumer_${i}_threshold`;
+            const iconKey = `energy_consumer_${i}_icon_id`;
+            setValueIfExists(topicKey, config[topicKey]);
+            setValueIfExists(thresholdKey, config[thresholdKey]);
+            setValueIfExists(iconKey, config[iconKey]);
+        }
+        setValueIfExists('energy_consumer_icon_color', config.energy_consumer_icon_color);
+
+        // Screen saver wake via MQTT
+        setValueIfExists('mqtt_wake_topic', config.mqtt_wake_topic);
+        setValueIfExists('mqtt_wake_value_path', config.mqtt_wake_value_path);
+        setValueIfExists('mqtt_wake_payload', config.mqtt_wake_payload);
+
+        // Energy Monitor UI scaling (kW)
+        setValueIfExists('energy_solar_bar_max_kw', config.energy_solar_bar_max_kw);
+        setValueIfExists('energy_home_bar_max_kw', config.energy_home_bar_max_kw);
+        setValueIfExists('energy_grid_bar_max_kw', config.energy_grid_bar_max_kw);
+
+        // Energy Monitor warning behavior
+        setValueIfExists('energy_alarm_pulse_cycle_ms', config.energy_alarm_pulse_cycle_ms);
+        setValueIfExists('energy_alarm_pulse_peak_pct', config.energy_alarm_pulse_peak_pct);
+        setValueIfExists('energy_alarm_clear_delay_ms', config.energy_alarm_clear_delay_ms);
+        setValueIfExists('energy_alarm_clear_hysteresis_mkw', config.energy_alarm_clear_hysteresis_mkw);
+
+        // Energy Monitor per-category colors + thresholds
+        setValueIfExists('energy_solar_color_good', config.energy_solar_color_good);
+        setValueIfExists('energy_solar_color_ok', config.energy_solar_color_ok);
+        setValueIfExists('energy_solar_color_attention', config.energy_solar_color_attention);
+        setValueIfExists('energy_solar_color_warning', config.energy_solar_color_warning);
+        setValueIfExists('energy_solar_threshold_0_kw', config.energy_solar_threshold_0_kw);
+        setValueIfExists('energy_solar_threshold_1_kw', config.energy_solar_threshold_1_kw);
+        setValueIfExists('energy_solar_threshold_2_kw', config.energy_solar_threshold_2_kw);
+
+        setValueIfExists('energy_home_color_good', config.energy_home_color_good);
+        setValueIfExists('energy_home_color_ok', config.energy_home_color_ok);
+        setValueIfExists('energy_home_color_attention', config.energy_home_color_attention);
+        setValueIfExists('energy_home_color_warning', config.energy_home_color_warning);
+        setValueIfExists('energy_home_threshold_0_kw', config.energy_home_threshold_0_kw);
+        setValueIfExists('energy_home_threshold_1_kw', config.energy_home_threshold_1_kw);
+        setValueIfExists('energy_home_threshold_2_kw', config.energy_home_threshold_2_kw);
+
+        setValueIfExists('energy_grid_color_good', config.energy_grid_color_good);
+        setValueIfExists('energy_grid_color_ok', config.energy_grid_color_ok);
+        setValueIfExists('energy_grid_color_attention', config.energy_grid_color_attention);
+        setValueIfExists('energy_grid_color_warning', config.energy_grid_color_warning);
+        setValueIfExists('energy_grid_threshold_0_kw', config.energy_grid_threshold_0_kw);
+        setValueIfExists('energy_grid_threshold_1_kw', config.energy_grid_threshold_1_kw);
+        setValueIfExists('energy_grid_threshold_2_kw', config.energy_grid_threshold_2_kw);
+
+        initEnergyMonitorThresholdMaps();
 
         // Basic Auth settings
         setCheckedIfExists('basic_auth_enabled', config.basic_auth_enabled);
@@ -666,11 +817,28 @@ function extractFormFields(formData) {
     // Build config from only the fields that exist on this page
     const config = {};
     const fields = ['wifi_ssid', 'wifi_password', 'device_name', 'fixed_ip', 
-                    'subnet_mask', 'gateway', 'dns1', 'dns2', 'dummy_setting',
+                    'subnet_mask', 'gateway', 'dns1', 'dns2',
                     'mqtt_host', 'mqtt_port', 'mqtt_username', 'mqtt_password', 'mqtt_interval_seconds',
+                    'mqtt_topic_solar', 'mqtt_topic_grid', 'mqtt_solar_value_path', 'mqtt_grid_value_path',
+                    'mqtt_wake_topic', 'mqtt_wake_value_path', 'mqtt_wake_payload',
+                    'energy_solar_bar_max_kw', 'energy_home_bar_max_kw', 'energy_grid_bar_max_kw',
+                    'energy_alarm_pulse_cycle_ms', 'energy_alarm_pulse_peak_pct', 'energy_alarm_clear_delay_ms', 'energy_alarm_clear_hysteresis_mkw',
+                    'energy_consumer_icon_color',
+                    'energy_solar_color_good', 'energy_solar_color_ok', 'energy_solar_color_attention', 'energy_solar_color_warning',
+                    'energy_solar_threshold_0_kw', 'energy_solar_threshold_1_kw', 'energy_solar_threshold_2_kw',
+                    'energy_home_color_good', 'energy_home_color_ok', 'energy_home_color_attention', 'energy_home_color_warning',
+                    'energy_home_threshold_0_kw', 'energy_home_threshold_1_kw', 'energy_home_threshold_2_kw',
+                    'energy_grid_color_good', 'energy_grid_color_ok', 'energy_grid_color_attention', 'energy_grid_color_warning',
+                    'energy_grid_threshold_0_kw', 'energy_grid_threshold_1_kw', 'energy_grid_threshold_2_kw',
                     'basic_auth_enabled', 'basic_auth_username', 'basic_auth_password',
                     'backlight_brightness',
                     'screen_saver_enabled', 'screen_saver_timeout_seconds', 'screen_saver_fade_out_ms', 'screen_saver_fade_in_ms', 'screen_saver_wake_on_touch'];
+
+    for (let i = 1; i <= ENERGY_CONSUMER_COUNT; i++) {
+        fields.push(`energy_consumer_${i}_topic`);
+        fields.push(`energy_consumer_${i}_threshold`);
+        fields.push(`energy_consumer_${i}_icon_id`);
+    }
     
     fields.forEach(field => {
         const element = document.querySelector(`[name="${field}"]`);
@@ -1149,6 +1317,10 @@ async function handleScreenChange(event) {
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize navigation highlighting
     initNavigation();
+
+    // Initialize Energy Monitor threshold maps (if present on the page)
+    initEnergyMonitorThresholdMaps();
+    initEnergyConsumerIconSelects();
     
     // Attach event handlers (check if elements exist for multi-page support)
     const configForm = document.getElementById('config-form');

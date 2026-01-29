@@ -24,12 +24,68 @@
 #define KEY_GATEWAY        "gateway"
 #define KEY_DNS1           "dns1"
 #define KEY_DNS2           "dns2"
-#define KEY_DUMMY          "dummy"
 #define KEY_MQTT_HOST      "mqtt_host"
 #define KEY_MQTT_PORT      "mqtt_port"
 #define KEY_MQTT_USER      "mqtt_user"
 #define KEY_MQTT_PASS      "mqtt_pass"
 #define KEY_MQTT_INTERVAL  "mqtt_int"
+#define KEY_MQTT_SOLAR_TOPIC "mqtt_sol_t"
+#define KEY_MQTT_GRID_TOPIC  "mqtt_grd_t"
+#define KEY_MQTT_SOLAR_PATH  "mqtt_sol_p"
+#define KEY_MQTT_GRID_PATH   "mqtt_grd_p"
+#define KEY_MQTT_WAKE_TOPIC  "mqtt_wk_t"
+#define KEY_MQTT_WAKE_PATH   "mqtt_wk_v"
+#define KEY_MQTT_WAKE_PAYLOAD "mqtt_wk_p"
+#define KEY_ENERGY_SOLAR_BAR_MAX_KW "en_sol_m"
+#define KEY_ENERGY_HOME_BAR_MAX_KW  "en_hom_m"
+#define KEY_ENERGY_GRID_BAR_MAX_KW  "en_grd_m"
+
+// Energy monitor warning behavior
+#define KEY_ENERGY_ALARM_PULSE_CYCLE_MS "en_al_pc"
+#define KEY_ENERGY_ALARM_PULSE_PEAK_PCT "en_al_pp"
+#define KEY_ENERGY_ALARM_CLEAR_DELAY_MS "en_al_cd"
+#define KEY_ENERGY_ALARM_CLEAR_HYST_MKW "en_al_ch"
+
+// Energy monitor colors/thresholds (per category)
+#define KEY_EN_SOL_CG "es_cg"
+#define KEY_EN_SOL_CO "es_co"
+#define KEY_EN_SOL_CA "es_ca"
+#define KEY_EN_SOL_CW "es_cw"
+#define KEY_EN_SOL_T0 "es_t0"
+#define KEY_EN_SOL_T1 "es_t1"
+#define KEY_EN_SOL_T2 "es_t2"
+
+#define KEY_EN_HOM_CG "eh_cg"
+#define KEY_EN_HOM_CO "eh_co"
+#define KEY_EN_HOM_CA "eh_ca"
+#define KEY_EN_HOM_CW "eh_cw"
+#define KEY_EN_HOM_T0 "eh_t0"
+#define KEY_EN_HOM_T1 "eh_t1"
+#define KEY_EN_HOM_T2 "eh_t2"
+
+#define KEY_EN_GRD_CG "eg_cg"
+#define KEY_EN_GRD_CO "eg_co"
+#define KEY_EN_GRD_CA "eg_ca"
+#define KEY_EN_GRD_CW "eg_cw"
+#define KEY_EN_GRD_T0 "eg_t0"
+#define KEY_EN_GRD_T1 "eg_t1"
+#define KEY_EN_GRD_T2 "eg_t2"
+#define KEY_EN_CONS_ICON_COLOR "ec_color"
+#define KEY_EN_CONS0_TOPIC "ec0_t"
+#define KEY_EN_CONS0_THRESH "ec0_th"
+#define KEY_EN_CONS0_ICON "ec0_i"
+#define KEY_EN_CONS1_TOPIC "ec1_t"
+#define KEY_EN_CONS1_THRESH "ec1_th"
+#define KEY_EN_CONS1_ICON "ec1_i"
+#define KEY_EN_CONS2_TOPIC "ec2_t"
+#define KEY_EN_CONS2_THRESH "ec2_th"
+#define KEY_EN_CONS2_ICON "ec2_i"
+#define KEY_EN_CONS3_TOPIC "ec3_t"
+#define KEY_EN_CONS3_THRESH "ec3_th"
+#define KEY_EN_CONS3_ICON "ec3_i"
+#define KEY_EN_CONS4_TOPIC "ec4_t"
+#define KEY_EN_CONS4_THRESH "ec4_th"
+#define KEY_EN_CONS4_ICON "ec4_i"
 #define KEY_BACKLIGHT_BRIGHTNESS "bl_bright"
 
 // Web portal Basic Auth
@@ -46,6 +102,66 @@
 #define KEY_MAGIC          "magic"
 
 static Preferences preferences;
+
+static void set_energy_defaults(EnergyCategoryColorConfig* cfg) {
+    if (!cfg) return;
+    cfg->color_good_rgb = 0x00FF00;      // green
+    cfg->color_ok_rgb = 0xFFFFFF;        // white
+    cfg->color_attention_rgb = 0xFFA500; // orange
+    cfg->color_warning_rgb = 0xFF0000;   // red
+
+    cfg->threshold_mkw[0] = 500;   // 0.5 kW
+    cfg->threshold_mkw[1] = 1500;  // 1.5 kW
+    cfg->threshold_mkw[2] = 3000;  // 3.0 kW
+}
+
+static void normalize_energy_thresholds(EnergyCategoryColorConfig* cfg) {
+    if (!cfg) return;
+    if (cfg->threshold_mkw[0] < 0) cfg->threshold_mkw[0] = 0;
+    if (cfg->threshold_mkw[1] < 0) cfg->threshold_mkw[1] = 0;
+    if (cfg->threshold_mkw[2] < 0) cfg->threshold_mkw[2] = 0;
+
+    // Require monotonic order; if invalid, reset to defaults.
+    if (cfg->threshold_mkw[0] > cfg->threshold_mkw[1] || cfg->threshold_mkw[1] > cfg->threshold_mkw[2]) {
+        set_energy_defaults(cfg);
+    }
+}
+
+static void energy_consumer_keys(uint8_t index, const char** topic_key, const char** thresh_key, const char** icon_key) {
+    if (topic_key) *topic_key = nullptr;
+    if (thresh_key) *thresh_key = nullptr;
+    if (icon_key) *icon_key = nullptr;
+
+    switch (index) {
+        case 0:
+            if (topic_key) *topic_key = KEY_EN_CONS0_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS0_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS0_ICON;
+            break;
+        case 1:
+            if (topic_key) *topic_key = KEY_EN_CONS1_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS1_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS1_ICON;
+            break;
+        case 2:
+            if (topic_key) *topic_key = KEY_EN_CONS2_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS2_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS2_ICON;
+            break;
+        case 3:
+            if (topic_key) *topic_key = KEY_EN_CONS3_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS3_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS3_ICON;
+            break;
+        case 4:
+            if (topic_key) *topic_key = KEY_EN_CONS4_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS4_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS4_ICON;
+            break;
+        default:
+            break;
+    }
+}
 
 // Initialize NVS
 void config_manager_init() {
@@ -133,6 +249,39 @@ bool config_manager_load(DeviceConfig *config) {
         config->mqtt_port = 0;
         config->mqtt_interval_seconds = 0;
 
+        config->mqtt_topic_solar[0] = '\0';
+        config->mqtt_topic_grid[0] = '\0';
+        config->mqtt_wake_topic[0] = '\0';
+        config->mqtt_wake_payload[0] = '\0';
+        strlcpy(config->mqtt_wake_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+
+        strlcpy(config->mqtt_solar_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+        strlcpy(config->mqtt_grid_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+
+        // Energy monitor UI defaults (kW)
+        config->energy_solar_bar_max_kw = 3.0f;
+        config->energy_home_bar_max_kw = 3.0f;
+        config->energy_grid_bar_max_kw = 3.0f;
+
+        // Energy monitor warning defaults
+        config->energy_alarm_pulse_cycle_ms = 2000;
+        config->energy_alarm_pulse_peak_pct = 100;
+        config->energy_alarm_clear_delay_ms = 800;
+        config->energy_alarm_clear_hysteresis_mkw = 100;
+
+        // Energy monitor colors/thresholds defaults
+        set_energy_defaults(&config->energy_solar_colors);
+        set_energy_defaults(&config->energy_home_colors);
+        set_energy_defaults(&config->energy_grid_colors);
+
+        // Energy monitor consumers (optional)
+        for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+            config->energy_consumers[i].topic[0] = '\0';
+            config->energy_consumers[i].threshold = 0.0f;
+            config->energy_consumers[i].icon_id = 0;
+        }
+        config->energy_consumer_icon_color_rgb = 0xFFFFFF;
+
         // Basic Auth defaults
         config->basic_auth_enabled = false;
         config->basic_auth_username[0] = '\0';
@@ -172,15 +321,90 @@ bool config_manager_load(DeviceConfig *config) {
     preferences.getString(KEY_DNS1, config->dns1, CONFIG_IP_STR_MAX_LEN);
     preferences.getString(KEY_DNS2, config->dns2, CONFIG_IP_STR_MAX_LEN);
     
-    // Load dummy setting
-    preferences.getString(KEY_DUMMY, config->dummy_setting, CONFIG_DUMMY_MAX_LEN);
-
     // Load MQTT settings (all optional)
     preferences.getString(KEY_MQTT_HOST, config->mqtt_host, CONFIG_MQTT_HOST_MAX_LEN);
     config->mqtt_port = preferences.getUShort(KEY_MQTT_PORT, 0);
     preferences.getString(KEY_MQTT_USER, config->mqtt_username, CONFIG_MQTT_USERNAME_MAX_LEN);
     preferences.getString(KEY_MQTT_PASS, config->mqtt_password, CONFIG_MQTT_PASSWORD_MAX_LEN);
     config->mqtt_interval_seconds = preferences.getUShort(KEY_MQTT_INTERVAL, 0);
+
+    // Load Energy Monitor MQTT settings (all optional)
+    preferences.getString(KEY_MQTT_SOLAR_TOPIC, config->mqtt_topic_solar, CONFIG_MQTT_TOPIC_MAX_LEN);
+    preferences.getString(KEY_MQTT_GRID_TOPIC, config->mqtt_topic_grid, CONFIG_MQTT_TOPIC_MAX_LEN);
+    preferences.getString(KEY_MQTT_SOLAR_PATH, config->mqtt_solar_value_path, CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    preferences.getString(KEY_MQTT_GRID_PATH, config->mqtt_grid_value_path, CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    preferences.getString(KEY_MQTT_WAKE_TOPIC, config->mqtt_wake_topic, CONFIG_MQTT_TOPIC_MAX_LEN);
+    preferences.getString(KEY_MQTT_WAKE_PATH, config->mqtt_wake_value_path, CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    preferences.getString(KEY_MQTT_WAKE_PAYLOAD, config->mqtt_wake_payload, CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN);
+    if (strlen(config->mqtt_solar_value_path) == 0) strlcpy(config->mqtt_solar_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    if (strlen(config->mqtt_grid_value_path) == 0) strlcpy(config->mqtt_grid_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    if (strlen(config->mqtt_wake_value_path) == 0) strlcpy(config->mqtt_wake_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+
+    // Energy Monitor UI scaling (kW)
+    config->energy_solar_bar_max_kw = preferences.getFloat(KEY_ENERGY_SOLAR_BAR_MAX_KW, 3.0f);
+    config->energy_home_bar_max_kw = preferences.getFloat(KEY_ENERGY_HOME_BAR_MAX_KW, 3.0f);
+    config->energy_grid_bar_max_kw = preferences.getFloat(KEY_ENERGY_GRID_BAR_MAX_KW, 3.0f);
+
+    // Clamp to sane minimums (avoid divide-by-zero)
+    if (!(config->energy_solar_bar_max_kw > 0.0f)) config->energy_solar_bar_max_kw = 3.0f;
+    if (!(config->energy_home_bar_max_kw > 0.0f)) config->energy_home_bar_max_kw = 3.0f;
+    if (!(config->energy_grid_bar_max_kw > 0.0f)) config->energy_grid_bar_max_kw = 3.0f;
+
+    // Load Energy Monitor warning behavior
+    config->energy_alarm_pulse_cycle_ms = preferences.getUShort(KEY_ENERGY_ALARM_PULSE_CYCLE_MS, 2000);
+    config->energy_alarm_pulse_peak_pct = preferences.getUChar(KEY_ENERGY_ALARM_PULSE_PEAK_PCT, 100);
+    config->energy_alarm_clear_delay_ms = preferences.getUShort(KEY_ENERGY_ALARM_CLEAR_DELAY_MS, 800);
+    config->energy_alarm_clear_hysteresis_mkw = preferences.getInt(KEY_ENERGY_ALARM_CLEAR_HYST_MKW, 100);
+
+    // Clamp to sane ranges
+    if (config->energy_alarm_pulse_cycle_ms < 200) config->energy_alarm_pulse_cycle_ms = 200;
+    if (config->energy_alarm_pulse_cycle_ms > 10000) config->energy_alarm_pulse_cycle_ms = 10000;
+    if (config->energy_alarm_pulse_peak_pct > 100) config->energy_alarm_pulse_peak_pct = 100;
+    if (config->energy_alarm_clear_delay_ms > 60000) config->energy_alarm_clear_delay_ms = 60000;
+    if (config->energy_alarm_clear_hysteresis_mkw < 0) config->energy_alarm_clear_hysteresis_mkw = 0;
+    if (config->energy_alarm_clear_hysteresis_mkw > 100000) config->energy_alarm_clear_hysteresis_mkw = 100000;
+
+    // Energy Monitor colors/thresholds
+    config->energy_solar_colors.color_good_rgb = preferences.getUInt(KEY_EN_SOL_CG, 0x00FF00);
+    config->energy_solar_colors.color_ok_rgb = preferences.getUInt(KEY_EN_SOL_CO, 0xFFFFFF);
+    config->energy_solar_colors.color_attention_rgb = preferences.getUInt(KEY_EN_SOL_CA, 0xFFA500);
+    config->energy_solar_colors.color_warning_rgb = preferences.getUInt(KEY_EN_SOL_CW, 0xFF0000);
+    config->energy_solar_colors.threshold_mkw[0] = preferences.getInt(KEY_EN_SOL_T0, 500);
+    config->energy_solar_colors.threshold_mkw[1] = preferences.getInt(KEY_EN_SOL_T1, 1500);
+    config->energy_solar_colors.threshold_mkw[2] = preferences.getInt(KEY_EN_SOL_T2, 3000);
+    normalize_energy_thresholds(&config->energy_solar_colors);
+
+    config->energy_home_colors.color_good_rgb = preferences.getUInt(KEY_EN_HOM_CG, 0x00FF00);
+    config->energy_home_colors.color_ok_rgb = preferences.getUInt(KEY_EN_HOM_CO, 0xFFFFFF);
+    config->energy_home_colors.color_attention_rgb = preferences.getUInt(KEY_EN_HOM_CA, 0xFFA500);
+    config->energy_home_colors.color_warning_rgb = preferences.getUInt(KEY_EN_HOM_CW, 0xFF0000);
+    config->energy_home_colors.threshold_mkw[0] = preferences.getInt(KEY_EN_HOM_T0, 500);
+    config->energy_home_colors.threshold_mkw[1] = preferences.getInt(KEY_EN_HOM_T1, 1500);
+    config->energy_home_colors.threshold_mkw[2] = preferences.getInt(KEY_EN_HOM_T2, 3000);
+    normalize_energy_thresholds(&config->energy_home_colors);
+
+    config->energy_grid_colors.color_good_rgb = preferences.getUInt(KEY_EN_GRD_CG, 0x00FF00);
+    config->energy_grid_colors.color_ok_rgb = preferences.getUInt(KEY_EN_GRD_CO, 0xFFFFFF);
+    config->energy_grid_colors.color_attention_rgb = preferences.getUInt(KEY_EN_GRD_CA, 0xFFA500);
+    config->energy_grid_colors.color_warning_rgb = preferences.getUInt(KEY_EN_GRD_CW, 0xFF0000);
+    config->energy_grid_colors.threshold_mkw[0] = preferences.getInt(KEY_EN_GRD_T0, 500);
+    config->energy_grid_colors.threshold_mkw[1] = preferences.getInt(KEY_EN_GRD_T1, 1500);
+    config->energy_grid_colors.threshold_mkw[2] = preferences.getInt(KEY_EN_GRD_T2, 3000);
+    normalize_energy_thresholds(&config->energy_grid_colors);
+
+    // Energy Monitor consumers (optional)
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        const char* topic_key = nullptr;
+        const char* thresh_key = nullptr;
+        const char* icon_key = nullptr;
+        energy_consumer_keys(i, &topic_key, &thresh_key, &icon_key);
+        if (!topic_key || !thresh_key || !icon_key) continue;
+
+        preferences.getString(topic_key, config->energy_consumers[i].topic, CONFIG_MQTT_TOPIC_MAX_LEN);
+        config->energy_consumers[i].threshold = preferences.getFloat(thresh_key, 0.0f);
+        config->energy_consumers[i].icon_id = preferences.getUChar(icon_key, 0);
+    }
+    config->energy_consumer_icon_color_rgb = preferences.getUInt(KEY_EN_CONS_ICON_COLOR, 0xFFFFFF);
     
     // Load display settings
     config->backlight_brightness = preferences.getUChar(KEY_BACKLIGHT_BRIGHTNESS, 100);
@@ -249,15 +473,87 @@ bool config_manager_save(const DeviceConfig *config) {
     preferences.putString(KEY_DNS1, config->dns1);
     preferences.putString(KEY_DNS2, config->dns2);
     
-    // Save dummy setting
-    preferences.putString(KEY_DUMMY, config->dummy_setting);
-
     // Save MQTT settings
     preferences.putString(KEY_MQTT_HOST, config->mqtt_host);
     preferences.putUShort(KEY_MQTT_PORT, config->mqtt_port);
     preferences.putString(KEY_MQTT_USER, config->mqtt_username);
     preferences.putString(KEY_MQTT_PASS, config->mqtt_password);
     preferences.putUShort(KEY_MQTT_INTERVAL, config->mqtt_interval_seconds);
+
+    // Save Energy Monitor MQTT settings
+    preferences.putString(KEY_MQTT_SOLAR_TOPIC, config->mqtt_topic_solar);
+    preferences.putString(KEY_MQTT_GRID_TOPIC, config->mqtt_topic_grid);
+    preferences.putString(KEY_MQTT_SOLAR_PATH, config->mqtt_solar_value_path);
+    preferences.putString(KEY_MQTT_GRID_PATH, config->mqtt_grid_value_path);
+    preferences.putString(KEY_MQTT_WAKE_TOPIC, config->mqtt_wake_topic);
+    preferences.putString(KEY_MQTT_WAKE_PATH, config->mqtt_wake_value_path);
+    preferences.putString(KEY_MQTT_WAKE_PAYLOAD, config->mqtt_wake_payload);
+
+    // Save Energy Monitor UI scaling (kW)
+    float solar_max = config->energy_solar_bar_max_kw;
+    float home_max = config->energy_home_bar_max_kw;
+    float grid_max = config->energy_grid_bar_max_kw;
+    preferences.putFloat(KEY_ENERGY_SOLAR_BAR_MAX_KW, solar_max);
+    preferences.putFloat(KEY_ENERGY_HOME_BAR_MAX_KW, home_max);
+    preferences.putFloat(KEY_ENERGY_GRID_BAR_MAX_KW, grid_max);
+
+    // Save Energy Monitor warning behavior
+    uint16_t pulse_cycle = config->energy_alarm_pulse_cycle_ms;
+    if (pulse_cycle < 200) pulse_cycle = 200;
+    if (pulse_cycle > 10000) pulse_cycle = 10000;
+    uint8_t peak_pct = config->energy_alarm_pulse_peak_pct;
+    if (peak_pct > 100) peak_pct = 100;
+    uint16_t clear_delay = config->energy_alarm_clear_delay_ms;
+    if (clear_delay > 60000) clear_delay = 60000;
+    int32_t clear_hyst = config->energy_alarm_clear_hysteresis_mkw;
+    if (clear_hyst < 0) clear_hyst = 0;
+    if (clear_hyst > 100000) clear_hyst = 100000;
+
+    preferences.putUShort(KEY_ENERGY_ALARM_PULSE_CYCLE_MS, pulse_cycle);
+    preferences.putUChar(KEY_ENERGY_ALARM_PULSE_PEAK_PCT, peak_pct);
+    preferences.putUShort(KEY_ENERGY_ALARM_CLEAR_DELAY_MS, clear_delay);
+    preferences.putInt(KEY_ENERGY_ALARM_CLEAR_HYST_MKW, clear_hyst);
+
+    // Save Energy Monitor colors/thresholds
+    preferences.putUInt(KEY_EN_SOL_CG, config->energy_solar_colors.color_good_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_SOL_CO, config->energy_solar_colors.color_ok_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_SOL_CA, config->energy_solar_colors.color_attention_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_SOL_CW, config->energy_solar_colors.color_warning_rgb & 0xFFFFFF);
+    preferences.putInt(KEY_EN_SOL_T0, config->energy_solar_colors.threshold_mkw[0]);
+    preferences.putInt(KEY_EN_SOL_T1, config->energy_solar_colors.threshold_mkw[1]);
+    preferences.putInt(KEY_EN_SOL_T2, config->energy_solar_colors.threshold_mkw[2]);
+
+    preferences.putUInt(KEY_EN_HOM_CG, config->energy_home_colors.color_good_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_HOM_CO, config->energy_home_colors.color_ok_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_HOM_CA, config->energy_home_colors.color_attention_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_HOM_CW, config->energy_home_colors.color_warning_rgb & 0xFFFFFF);
+    preferences.putInt(KEY_EN_HOM_T0, config->energy_home_colors.threshold_mkw[0]);
+    preferences.putInt(KEY_EN_HOM_T1, config->energy_home_colors.threshold_mkw[1]);
+    preferences.putInt(KEY_EN_HOM_T2, config->energy_home_colors.threshold_mkw[2]);
+
+    preferences.putUInt(KEY_EN_GRD_CG, config->energy_grid_colors.color_good_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_GRD_CO, config->energy_grid_colors.color_ok_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_GRD_CA, config->energy_grid_colors.color_attention_rgb & 0xFFFFFF);
+    preferences.putUInt(KEY_EN_GRD_CW, config->energy_grid_colors.color_warning_rgb & 0xFFFFFF);
+    preferences.putInt(KEY_EN_GRD_T0, config->energy_grid_colors.threshold_mkw[0]);
+    preferences.putInt(KEY_EN_GRD_T1, config->energy_grid_colors.threshold_mkw[1]);
+    preferences.putInt(KEY_EN_GRD_T2, config->energy_grid_colors.threshold_mkw[2]);
+
+    // Save Energy Monitor consumer icon color
+    preferences.putUInt(KEY_EN_CONS_ICON_COLOR, config->energy_consumer_icon_color_rgb & 0xFFFFFF);
+
+    // Save Energy Monitor consumers
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        const char* topic_key = nullptr;
+        const char* thresh_key = nullptr;
+        const char* icon_key = nullptr;
+        energy_consumer_keys(i, &topic_key, &thresh_key, &icon_key);
+        if (!topic_key || !thresh_key || !icon_key) continue;
+
+        preferences.putString(topic_key, config->energy_consumers[i].topic);
+        preferences.putFloat(thresh_key, config->energy_consumers[i].threshold);
+        preferences.putUChar(icon_key, config->energy_consumers[i].icon_id);
+    }
     
     // Save display settings
     LOGI("Config", "Saving brightness: %d%%", config->backlight_brightness);
@@ -351,6 +647,11 @@ void config_manager_print(const DeviceConfig *config) {
         }
         LOGI("Config", "MQTT User: %s", strlen(config->mqtt_username) > 0 ? config->mqtt_username : "(none)");
         LOGI("Config", "MQTT Pass: %s", strlen(config->mqtt_password) > 0 ? "***" : "(none)");
+        if (strlen(config->mqtt_wake_topic) > 0) {
+              LOGI("Config", "MQTT Wake: topic=%s path=%s payload=%s", config->mqtt_wake_topic,
+                  strlen(config->mqtt_wake_value_path) > 0 ? config->mqtt_wake_value_path : ".",
+                  strlen(config->mqtt_wake_payload) > 0 ? config->mqtt_wake_payload : "(empty)");
+        }
     } else {
         LOGI("Config", "MQTT: disabled");
     }

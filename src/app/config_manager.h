@@ -26,16 +26,39 @@
 #define CONFIG_PASSWORD_MAX_LEN 64
 #define CONFIG_DEVICE_NAME_MAX_LEN 32
 #define CONFIG_IP_STR_MAX_LEN 16
-#define CONFIG_DUMMY_MAX_LEN 64
 
 // MQTT settings
 #define CONFIG_MQTT_HOST_MAX_LEN 64
 #define CONFIG_MQTT_USERNAME_MAX_LEN 32
 #define CONFIG_MQTT_PASSWORD_MAX_LEN 64
+#define CONFIG_MQTT_TOPIC_MAX_LEN 128
+#define CONFIG_MQTT_VALUE_PATH_MAX_LEN 32
+#define CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN 32
 
 // Web portal Basic Auth (STA/full mode only)
 #define CONFIG_BASIC_AUTH_USERNAME_MAX_LEN 32
 #define CONFIG_BASIC_AUTH_PASSWORD_MAX_LEN 64
+
+// Energy monitor color config
+struct EnergyCategoryColorConfig {
+    // Colors stored as 0xRRGGBB
+    uint32_t color_good_rgb;
+    uint32_t color_ok_rgb;
+    uint32_t color_attention_rgb;
+    uint32_t color_warning_rgb;
+
+    // Thresholds stored as milli-kW to keep NVS stable (kW * 1000)
+    int32_t threshold_mkw[3];
+};
+
+// Energy monitor consumer indicators
+#define ENERGY_CONSUMER_COUNT 5
+
+struct EnergyConsumerConfig {
+    char topic[CONFIG_MQTT_TOPIC_MAX_LEN];
+    float threshold;
+    uint8_t icon_id;
+};
 
 // Configuration structure
 struct DeviceConfig {
@@ -53,15 +76,48 @@ struct DeviceConfig {
     char dns1[CONFIG_IP_STR_MAX_LEN];
     char dns2[CONFIG_IP_STR_MAX_LEN];
     
-    // Dummy setting (example for extensibility)
-    char dummy_setting[CONFIG_DUMMY_MAX_LEN];
-
     // MQTT / Home Assistant integration settings (all optional)
     char mqtt_host[CONFIG_MQTT_HOST_MAX_LEN];
     uint16_t mqtt_port; // default to 1883 when mqtt_host set and mqtt_port is 0
     char mqtt_username[CONFIG_MQTT_USERNAME_MAX_LEN];
     char mqtt_password[CONFIG_MQTT_PASSWORD_MAX_LEN];
     uint16_t mqtt_interval_seconds; // 0 disables periodic publish
+
+    // Energy monitor MQTT subscriptions (optional)
+    char mqtt_topic_solar[CONFIG_MQTT_TOPIC_MAX_LEN];
+    char mqtt_topic_grid[CONFIG_MQTT_TOPIC_MAX_LEN];
+    // Path is either "." for direct numeric payloads, or a JSON key (e.g. "value")
+    char mqtt_solar_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN];
+    char mqtt_grid_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN];
+
+    // Screen saver wake via MQTT (optional)
+    char mqtt_wake_topic[CONFIG_MQTT_TOPIC_MAX_LEN];
+    char mqtt_wake_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN];
+    char mqtt_wake_payload[CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN];
+
+    // Energy monitor UI scaling (kW). Defaults to 3.0.
+    float energy_solar_bar_max_kw;
+    float energy_home_bar_max_kw;
+    float energy_grid_bar_max_kw;
+
+    // Energy monitor warning behavior (T2 alert).
+    // Pulse cycle duration for the breathing background (ms). Example: 2000.
+    uint16_t energy_alarm_pulse_cycle_ms;
+    // Pulse intensity (0-100). 100 = full peak color.
+    uint8_t energy_alarm_pulse_peak_pct;
+    // Anti-flicker: require the alarm condition to be cleared for at least this long before fading out (ms).
+    uint16_t energy_alarm_clear_delay_ms;
+    // Anti-flicker: hysteresis for clearing a T2 alarm (milli-kW). Example: 100 = 0.1 kW.
+    int32_t energy_alarm_clear_hysteresis_mkw;
+
+    // Energy monitor per-category colors and thresholds
+    EnergyCategoryColorConfig energy_solar_colors;
+    EnergyCategoryColorConfig energy_home_colors;
+    EnergyCategoryColorConfig energy_grid_colors;
+
+    // Energy monitor consumer indicators (optional)
+    EnergyConsumerConfig energy_consumers[ENERGY_CONSUMER_COUNT];
+    uint32_t energy_consumer_icon_color_rgb; // 0xRRGGBB
     
     // Display settings
     uint8_t backlight_brightness;  // 0-100%, default 100

@@ -10,4 +10,7 @@ void handleDeleteConfig(AsyncWebServerRequest *request);
 // Called from the main loop to cleanup stale/chunked /api/config uploads.
 void web_portal_config_loop();
 
+// Returns true if a no-reboot config save requires MQTT reconnect.
+bool web_portal_config_take_mqtt_reconnect_request();
+
 #endif // WEB_PORTAL_CONFIG_H

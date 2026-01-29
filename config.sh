@@ -30,8 +30,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   - REST API /api/info response (both values included)
 #   Example: "ESP32 Template"
 #
-PROJECT_NAME="esp32-template"
-PROJECT_DISPLAY_NAME="ESP32 Template"
+PROJECT_NAME="jc3248w535-energymon"
+PROJECT_DISPLAY_NAME="jc3248w535 Energy Monitor"
 
 # Board configuration (FQBN - Fully Qualified Board Name)
 # Define target boards as an associative array: ["board-name"]="FQBN"

@@ -2,9 +2,11 @@
 #include "board_config.h"
 #include "config_manager.h"
 #include "web_portal.h"
+#include "web_portal_config.h"
 #include "log_manager.h"
 #include "mqtt_manager.h"
 #include "device_telemetry.h"
+#include "energy_monitor.h"
 #if HEALTH_HISTORY_ENABLED
 #include "health_history.h"
 #endif
@@ -39,6 +41,12 @@ unsigned long lastHeartbeat = 0;
 // WiFi watchdog for connection monitoring
 const unsigned long WIFI_CHECK_INTERVAL = 10000; // 10 seconds
 unsigned long lastWiFiCheck = 0;
+
+#if HAS_MQTT && HAS_DISPLAY
+// Presence keepalive while MQTT wake state is active
+const unsigned long PRESENCE_KEEPALIVE_INTERVAL = 5000; // 5 seconds
+unsigned long lastPresenceKeepAlive = 0;
+#endif
 
 // WiFi event handlers for connection lifecycle monitoring
 void onWiFiConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -100,6 +108,14 @@ void setup()
   device_config.backlight_brightness = 100;  // Default to full brightness
   device_config.mqtt_port = 0;
   device_config.mqtt_interval_seconds = 0;
+
+  // Energy Monitor UI defaults (kW)
+  device_config.energy_solar_bar_max_kw = 3.0f;
+  device_config.energy_home_bar_max_kw = 3.0f;
+  device_config.energy_grid_bar_max_kw = 3.0f;
+
+  // Energy monitor state (updated by MQTT, read by LVGL task)
+  energy_monitor_init();
 
   #if HAS_DISPLAY
   // Screen saver defaults (v1)
@@ -223,8 +239,8 @@ void setup()
   display_manager_set_splash_status("Ready!");
   delay(2000);  // 2 seconds to see splash + status updates
 
-  // Navigate to info screen
-  display_manager_show_info();
+  // Navigate to energy monitor screen
+  display_manager_show_energy_monitor();
 
   // Start the screen saver inactivity timer after the first runtime screen is visible.
   // This avoids counting boot + splash time as "inactivity".
@@ -245,12 +261,18 @@ void loop()
   // Handle web portal (DNS for captive portal)
   web_portal_handle();
 
+  // Cleanup stale chunked config uploads
+  web_portal_config_loop();
+
   #if HAS_IMAGE_API
   // Process pending image uploads (deferred decoding)
   web_portal_process_pending_images();
   #endif
 
   #if HAS_MQTT
+  if (web_portal_config_take_mqtt_reconnect_request()) {
+    mqtt_manager_request_reconnect();
+  }
   mqtt_manager.loop();
   #endif
 
@@ -258,6 +280,20 @@ void loop()
   device_telemetry_check_tripwires();
 
   unsigned long currentMillis = millis();
+
+  #if HAS_MQTT && HAS_DISPLAY
+  if (config_loaded && device_config.screen_saver_enabled && device_config.screen_saver_timeout_seconds > 0) {
+    if (mqtt_manager.presenceActive()) {
+      if (lastPresenceKeepAlive == 0 || (currentMillis - lastPresenceKeepAlive) >= PRESENCE_KEEPALIVE_INTERVAL) {
+        const bool asleep = screen_saver_manager_is_asleep();
+        screen_saver_manager_notify_activity(asleep);
+        lastPresenceKeepAlive = currentMillis;
+      }
+    } else {
+      lastPresenceKeepAlive = 0;
+    }
+  }
+  #endif
 
   // WiFi watchdog - monitor connection and reconnect if needed
   // Only run if we're not in AP mode (AP mode is the fallback, should stay active)
