@@ -56,6 +56,25 @@
 
                 <hr style="border: none; border-top: 1px solid #e5e5ea; margin: 18px 0;">
 
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #1d1d1f;">Screen Saver Wake (MQTT)</h3>
+                <div class="form-group">
+                    <label for="mqtt_wake_topic">Wake Topic</label>
+                    <input type="text" id="mqtt_wake_topic" name="mqtt_wake_topic" maxlength="127" placeholder="e.g. home/presence">
+                    <small>MQTT topic that resets the screen saver timer and wakes the display.</small>
+                </div>
+                <div class="form-group">
+                    <label for="mqtt_wake_value_path">Wake Value Path</label>
+                    <input type="text" id="mqtt_wake_value_path" name="mqtt_wake_value_path" maxlength="31" placeholder="e.g. . or state">
+                    <small>Use <strong>.</strong> for raw payloads or a JSON key (e.g., <strong>state</strong>).</small>
+                </div>
+                <div class="form-group">
+                    <label for="mqtt_wake_payload">Wake Payload</label>
+                    <input type="text" id="mqtt_wake_payload" name="mqtt_wake_payload" maxlength="31" placeholder="e.g. ON">
+                    <small>Expected value that triggers a wake.</small>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e5e5ea; margin: 18px 0;">
+
                 <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #1d1d1f;">Colors & Thresholds</h3>
 
                 <div class="energy-category">

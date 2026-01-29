@@ -208,6 +208,8 @@ Real-time device health monitoring integrated as a header badge with expandable 
   - Bar scaling (kW) for Solar/Home/Grid
   - Per-category colors + thresholds (T0/T1/T2)
   - Warning behavior (breathing pulse, clear delay, hysteresis)
+- **🌙 Screen Saver Wake (MQTT)**: Optional wake trigger via MQTT
+  - Wake topic + value path + expected payload
 
 **Layout:** Two sections side-by-side on desktop (≥768px), stacked on mobile
 

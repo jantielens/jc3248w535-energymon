@@ -160,6 +160,11 @@ void handleGetConfig(AsyncWebServerRequest *request) {
         (*doc)["mqtt_solar_value_path"] = current_config->mqtt_solar_value_path;
         (*doc)["mqtt_grid_value_path"] = current_config->mqtt_grid_value_path;
 
+        // Screen saver wake via MQTT
+        (*doc)["mqtt_wake_topic"] = current_config->mqtt_wake_topic;
+        (*doc)["mqtt_wake_value_path"] = current_config->mqtt_wake_value_path;
+        (*doc)["mqtt_wake_payload"] = current_config->mqtt_wake_payload;
+
         // Energy Monitor UI scaling (kW)
         (*doc)["energy_solar_bar_max_kw"] = current_config->energy_solar_bar_max_kw;
         (*doc)["energy_home_bar_max_kw"] = current_config->energy_home_bar_max_kw;
@@ -253,6 +258,9 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     char prev_mqtt_password[CONFIG_MQTT_PASSWORD_MAX_LEN] = {0};
     char prev_mqtt_topic_solar[CONFIG_MQTT_TOPIC_MAX_LEN] = {0};
     char prev_mqtt_topic_grid[CONFIG_MQTT_TOPIC_MAX_LEN] = {0};
+    char prev_mqtt_wake_topic[CONFIG_MQTT_TOPIC_MAX_LEN] = {0};
+    char prev_mqtt_wake_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN] = {0};
+    char prev_mqtt_wake_payload[CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN] = {0};
     uint16_t prev_mqtt_port = current_config->mqtt_port;
 
     strlcpy(prev_mqtt_host, current_config->mqtt_host, sizeof(prev_mqtt_host));
@@ -260,6 +268,9 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     strlcpy(prev_mqtt_password, current_config->mqtt_password, sizeof(prev_mqtt_password));
     strlcpy(prev_mqtt_topic_solar, current_config->mqtt_topic_solar, sizeof(prev_mqtt_topic_solar));
     strlcpy(prev_mqtt_topic_grid, current_config->mqtt_topic_grid, sizeof(prev_mqtt_topic_grid));
+    strlcpy(prev_mqtt_wake_topic, current_config->mqtt_wake_topic, sizeof(prev_mqtt_wake_topic));
+    strlcpy(prev_mqtt_wake_value_path, current_config->mqtt_wake_value_path, sizeof(prev_mqtt_wake_value_path));
+    strlcpy(prev_mqtt_wake_payload, current_config->mqtt_wake_payload, sizeof(prev_mqtt_wake_payload));
     #endif
 
     // Accumulate the full body (chunk-safe) then parse once.
@@ -486,6 +497,20 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     }
     if (strlen(current_config->mqtt_grid_value_path) == 0) {
         strlcpy(current_config->mqtt_grid_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    }
+
+    // Screen saver wake via MQTT
+    if (doc.containsKey("mqtt_wake_topic")) {
+        strlcpy(current_config->mqtt_wake_topic, doc["mqtt_wake_topic"] | "", CONFIG_MQTT_TOPIC_MAX_LEN);
+    }
+    if (doc.containsKey("mqtt_wake_value_path")) {
+        strlcpy(current_config->mqtt_wake_value_path, doc["mqtt_wake_value_path"] | ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    }
+    if (doc.containsKey("mqtt_wake_payload")) {
+        strlcpy(current_config->mqtt_wake_payload, doc["mqtt_wake_payload"] | "", CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN);
+    }
+    if (strlen(current_config->mqtt_wake_value_path) == 0) {
+        strlcpy(current_config->mqtt_wake_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
     }
 
     // Energy Monitor UI scaling (kW)
@@ -740,7 +765,10 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
                               (strcmp(prev_mqtt_username, current_config->mqtt_username) != 0) ||
                               (strcmp(prev_mqtt_password, current_config->mqtt_password) != 0) ||
                               (strcmp(prev_mqtt_topic_solar, current_config->mqtt_topic_solar) != 0) ||
-                              (strcmp(prev_mqtt_topic_grid, current_config->mqtt_topic_grid) != 0);
+                              (strcmp(prev_mqtt_topic_grid, current_config->mqtt_topic_grid) != 0) ||
+                              (strcmp(prev_mqtt_wake_topic, current_config->mqtt_wake_topic) != 0) ||
+                              (strcmp(prev_mqtt_wake_value_path, current_config->mqtt_wake_value_path) != 0) ||
+                              (strcmp(prev_mqtt_wake_payload, current_config->mqtt_wake_payload) != 0);
     #endif
 
     current_config->magic = CONFIG_MAGIC;

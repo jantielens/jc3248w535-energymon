@@ -7,6 +7,7 @@
 #include "ha_discovery.h"
 #include "device_telemetry.h"
 #include "log_manager.h"
+#include "screen_saver_manager.h"
 #include "energy_monitor.h"
 
 #include <ctype.h>
@@ -75,6 +76,33 @@ static float parse_value_using_path(const uint8_t* payload, unsigned int length,
     return NAN;
 }
 
+static bool match_value_using_path(const uint8_t* payload, unsigned int length, const char* value_path, const char* expected) {
+    if (!payload || length == 0 || !expected) return false;
+    const size_t expected_len = strlen(expected);
+    if (expected_len == 0) return false;
+
+    if (!value_path || strlen(value_path) == 0 || strcmp(value_path, ".") == 0) {
+        return expected_len == length && memcmp(payload, expected, expected_len) == 0;
+    }
+
+    StaticJsonDocument<256> doc;
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err) return false;
+    if (!doc.containsKey(value_path)) return false;
+
+    JsonVariant v = doc[value_path];
+    if (v.is<const char*>()) {
+        const char* s = v.as<const char*>();
+        if (!s) return false;
+        return strlen(s) == expected_len && memcmp(s, expected, expected_len) == 0;
+    }
+
+    char buf[32];
+    const size_t n = serializeJson(v, buf, sizeof(buf));
+    if (n == 0 || n >= sizeof(buf)) return false;
+    return n == expected_len && memcmp(buf, expected, expected_len) == 0;
+}
+
 static void mqtt_message_trampoline(char* topic, uint8_t* payload, unsigned int length) {
     if (!s_mqtt_manager_instance) return;
     s_mqtt_manager_instance->handleIncomingMessage(topic, payload, length);
@@ -136,6 +164,12 @@ void MqttManager::subscribeEnergyMonitorTopics() {
         any = any || ok;
     }
 
+    if (strlen(_config->mqtt_wake_topic) > 0) {
+        bool ok = _client.subscribe(_config->mqtt_wake_topic);
+        LOGI("MQTT", "Subscribe wake '%s': %s", _config->mqtt_wake_topic, ok ? "OK" : "FAIL");
+        any = any || ok;
+    }
+
     _energy_subscriptions_active = any;
 }
 
@@ -182,6 +216,14 @@ void MqttManager::handleIncomingMessage(const char *topic, const uint8_t *payloa
             strlcpy(buf, "NAN", sizeof(buf));
         }
         LOGI("MQTT", "Energy grid update: %s -> %s", topic, buf);
+        return;
+    }
+
+    if (strlen(_config->mqtt_wake_topic) > 0 && strcmp(topic, _config->mqtt_wake_topic) == 0) {
+        if (match_value_using_path(payload, length, _config->mqtt_wake_value_path, _config->mqtt_wake_payload)) {
+            LOGI("MQTT", "Wake trigger: %s -> %.*s", topic, (int)length, (const char*)payload);
+            screen_saver_manager_notify_activity(true);
+        }
         return;
     }
 }

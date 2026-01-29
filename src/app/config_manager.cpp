@@ -34,6 +34,9 @@
 #define KEY_MQTT_GRID_TOPIC  "mqtt_grd_t"
 #define KEY_MQTT_SOLAR_PATH  "mqtt_sol_p"
 #define KEY_MQTT_GRID_PATH   "mqtt_grd_p"
+#define KEY_MQTT_WAKE_TOPIC  "mqtt_wk_t"
+#define KEY_MQTT_WAKE_PATH   "mqtt_wk_v"
+#define KEY_MQTT_WAKE_PAYLOAD "mqtt_wk_p"
 #define KEY_ENERGY_SOLAR_BAR_MAX_KW "en_sol_m"
 #define KEY_ENERGY_HOME_BAR_MAX_KW  "en_hom_m"
 #define KEY_ENERGY_GRID_BAR_MAX_KW  "en_grd_m"
@@ -197,6 +200,9 @@ bool config_manager_load(DeviceConfig *config) {
 
         config->mqtt_topic_solar[0] = '\0';
         config->mqtt_topic_grid[0] = '\0';
+        config->mqtt_wake_topic[0] = '\0';
+        config->mqtt_wake_payload[0] = '\0';
+        strlcpy(config->mqtt_wake_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
 
         strlcpy(config->mqtt_solar_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
         strlcpy(config->mqtt_grid_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
@@ -271,8 +277,12 @@ bool config_manager_load(DeviceConfig *config) {
     preferences.getString(KEY_MQTT_GRID_TOPIC, config->mqtt_topic_grid, CONFIG_MQTT_TOPIC_MAX_LEN);
     preferences.getString(KEY_MQTT_SOLAR_PATH, config->mqtt_solar_value_path, CONFIG_MQTT_VALUE_PATH_MAX_LEN);
     preferences.getString(KEY_MQTT_GRID_PATH, config->mqtt_grid_value_path, CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    preferences.getString(KEY_MQTT_WAKE_TOPIC, config->mqtt_wake_topic, CONFIG_MQTT_TOPIC_MAX_LEN);
+    preferences.getString(KEY_MQTT_WAKE_PATH, config->mqtt_wake_value_path, CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    preferences.getString(KEY_MQTT_WAKE_PAYLOAD, config->mqtt_wake_payload, CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN);
     if (strlen(config->mqtt_solar_value_path) == 0) strlcpy(config->mqtt_solar_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
     if (strlen(config->mqtt_grid_value_path) == 0) strlcpy(config->mqtt_grid_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    if (strlen(config->mqtt_wake_value_path) == 0) strlcpy(config->mqtt_wake_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
 
     // Energy Monitor UI scaling (kW)
     config->energy_solar_bar_max_kw = preferences.getFloat(KEY_ENERGY_SOLAR_BAR_MAX_KW, 3.0f);
@@ -408,6 +418,9 @@ bool config_manager_save(const DeviceConfig *config) {
     preferences.putString(KEY_MQTT_GRID_TOPIC, config->mqtt_topic_grid);
     preferences.putString(KEY_MQTT_SOLAR_PATH, config->mqtt_solar_value_path);
     preferences.putString(KEY_MQTT_GRID_PATH, config->mqtt_grid_value_path);
+    preferences.putString(KEY_MQTT_WAKE_TOPIC, config->mqtt_wake_topic);
+    preferences.putString(KEY_MQTT_WAKE_PATH, config->mqtt_wake_value_path);
+    preferences.putString(KEY_MQTT_WAKE_PAYLOAD, config->mqtt_wake_payload);
 
     // Save Energy Monitor UI scaling (kW)
     float solar_max = config->energy_solar_bar_max_kw;
@@ -551,6 +564,11 @@ void config_manager_print(const DeviceConfig *config) {
         }
         LOGI("Config", "MQTT User: %s", strlen(config->mqtt_username) > 0 ? config->mqtt_username : "(none)");
         LOGI("Config", "MQTT Pass: %s", strlen(config->mqtt_password) > 0 ? "***" : "(none)");
+        if (strlen(config->mqtt_wake_topic) > 0) {
+              LOGI("Config", "MQTT Wake: topic=%s path=%s payload=%s", config->mqtt_wake_topic,
+                  strlen(config->mqtt_wake_value_path) > 0 ? config->mqtt_wake_value_path : ".",
+                  strlen(config->mqtt_wake_payload) > 0 ? config->mqtt_wake_payload : "(empty)");
+        }
     } else {
         LOGI("Config", "MQTT: disabled");
     }

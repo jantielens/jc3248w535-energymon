@@ -673,6 +673,11 @@ async function loadConfig() {
         setValueIfExists('mqtt_solar_value_path', config.mqtt_solar_value_path);
         setValueIfExists('mqtt_grid_value_path', config.mqtt_grid_value_path);
 
+        // Screen saver wake via MQTT
+        setValueIfExists('mqtt_wake_topic', config.mqtt_wake_topic);
+        setValueIfExists('mqtt_wake_value_path', config.mqtt_wake_value_path);
+        setValueIfExists('mqtt_wake_payload', config.mqtt_wake_payload);
+
         // Energy Monitor UI scaling (kW)
         setValueIfExists('energy_solar_bar_max_kw', config.energy_solar_bar_max_kw);
         setValueIfExists('energy_home_bar_max_kw', config.energy_home_bar_max_kw);
@@ -773,6 +778,7 @@ function extractFormFields(formData) {
                     'subnet_mask', 'gateway', 'dns1', 'dns2', 'dummy_setting',
                     'mqtt_host', 'mqtt_port', 'mqtt_username', 'mqtt_password', 'mqtt_interval_seconds',
                     'mqtt_topic_solar', 'mqtt_topic_grid', 'mqtt_solar_value_path', 'mqtt_grid_value_path',
+                    'mqtt_wake_topic', 'mqtt_wake_value_path', 'mqtt_wake_payload',
                     'energy_solar_bar_max_kw', 'energy_home_bar_max_kw', 'energy_grid_bar_max_kw',
                     'energy_alarm_pulse_cycle_ms', 'energy_alarm_pulse_peak_pct', 'energy_alarm_clear_delay_ms', 'energy_alarm_clear_hysteresis_mkw',
                     'energy_solar_color_good', 'energy_solar_color_ok', 'energy_solar_color_attention', 'energy_solar_color_warning',

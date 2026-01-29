@@ -34,6 +34,7 @@
 #define CONFIG_MQTT_PASSWORD_MAX_LEN 64
 #define CONFIG_MQTT_TOPIC_MAX_LEN 128
 #define CONFIG_MQTT_VALUE_PATH_MAX_LEN 32
+#define CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN 32
 
 // Web portal Basic Auth (STA/full mode only)
 #define CONFIG_BASIC_AUTH_USERNAME_MAX_LEN 32
@@ -83,6 +84,11 @@ struct DeviceConfig {
     // Path is either "." for direct numeric payloads, or a JSON key (e.g. "value")
     char mqtt_solar_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN];
     char mqtt_grid_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN];
+
+    // Screen saver wake via MQTT (optional)
+    char mqtt_wake_topic[CONFIG_MQTT_TOPIC_MAX_LEN];
+    char mqtt_wake_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN];
+    char mqtt_wake_payload[CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN];
 
     // Energy monitor UI scaling (kW). Defaults to 3.0.
     float energy_solar_bar_max_kw;
