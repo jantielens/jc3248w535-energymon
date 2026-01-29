@@ -685,7 +685,6 @@ async function loadConfig() {
         setValueIfExists('dns2', config.dns2);
         
         // Dummy setting
-        setValueIfExists('dummy_setting', config.dummy_setting);
 
         // MQTT settings
         setValueIfExists('mqtt_host', config.mqtt_host);
@@ -714,6 +713,7 @@ async function loadConfig() {
             setValueIfExists(thresholdKey, config[thresholdKey]);
             setValueIfExists(iconKey, config[iconKey]);
         }
+        setValueIfExists('energy_consumer_icon_color', config.energy_consumer_icon_color);
 
         // Screen saver wake via MQTT
         setValueIfExists('mqtt_wake_topic', config.mqtt_wake_topic);
@@ -817,12 +817,13 @@ function extractFormFields(formData) {
     // Build config from only the fields that exist on this page
     const config = {};
     const fields = ['wifi_ssid', 'wifi_password', 'device_name', 'fixed_ip', 
-                    'subnet_mask', 'gateway', 'dns1', 'dns2', 'dummy_setting',
+                    'subnet_mask', 'gateway', 'dns1', 'dns2',
                     'mqtt_host', 'mqtt_port', 'mqtt_username', 'mqtt_password', 'mqtt_interval_seconds',
                     'mqtt_topic_solar', 'mqtt_topic_grid', 'mqtt_solar_value_path', 'mqtt_grid_value_path',
                     'mqtt_wake_topic', 'mqtt_wake_value_path', 'mqtt_wake_payload',
                     'energy_solar_bar_max_kw', 'energy_home_bar_max_kw', 'energy_grid_bar_max_kw',
                     'energy_alarm_pulse_cycle_ms', 'energy_alarm_pulse_peak_pct', 'energy_alarm_clear_delay_ms', 'energy_alarm_clear_hysteresis_mkw',
+                    'energy_consumer_icon_color',
                     'energy_solar_color_good', 'energy_solar_color_ok', 'energy_solar_color_attention', 'energy_solar_color_warning',
                     'energy_solar_threshold_0_kw', 'energy_solar_threshold_1_kw', 'energy_solar_threshold_2_kw',
                     'energy_home_color_good', 'energy_home_color_ok', 'energy_home_color_attention', 'energy_home_color_warning',

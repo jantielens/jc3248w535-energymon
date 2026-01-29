@@ -40,6 +40,7 @@ private:
     lv_obj_t* grid_bar_fill = nullptr;
 
     lv_obj_t* consumer_icons[ENERGY_CONSUMER_COUNT] = { nullptr };
+    bool consumerIconsCreated = false;  // Lazy init flag (deferred from boot)
 
     // T2 Warning (v2): red/black flip + contrast remapping.
     enum class AlarmState : uint8_t {

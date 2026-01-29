@@ -199,6 +199,19 @@ h1 {
     }
 }
 
+/* Equal height panels for energy thresholds on desktop */
+@media (min-width: 768px) {
+    .energy-thresholds-grid {
+        align-items: stretch;
+    }
+
+    .energy-thresholds-grid .energy-category {
+        height: 100%;
+        border-top: none;
+        padding-top: 0;
+    }
+}
+
 /* Status Message */
 .message {
     position: fixed;
@@ -249,6 +262,11 @@ h1 {
 
 .section:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Spacing between top-level section rows */
+.section-group {
+    margin-bottom: 24px;
 }
 
 h2 {

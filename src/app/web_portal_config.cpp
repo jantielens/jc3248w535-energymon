@@ -144,9 +144,6 @@ void handleGetConfig(AsyncWebServerRequest *request) {
         (*doc)["dns1"] = current_config->dns1;
         (*doc)["dns2"] = current_config->dns2;
 
-        // Dummy setting
-        (*doc)["dummy_setting"] = current_config->dummy_setting;
-
         // MQTT settings (password not returned)
         (*doc)["mqtt_host"] = current_config->mqtt_host;
         (*doc)["mqtt_port"] = current_config->mqtt_port;
@@ -170,6 +167,11 @@ void handleGetConfig(AsyncWebServerRequest *request) {
             (*doc)[key] = current_config->energy_consumers[i].threshold;
             snprintf(key, sizeof(key), "energy_consumer_%u_icon_id", idx);
             (*doc)[key] = current_config->energy_consumers[i].icon_id;
+        }
+        {
+            char c[8];
+            format_color_hex_rgb(current_config->energy_consumer_icon_color_rgb, c);
+            (*doc)["energy_consumer_icon_color"] = c;
         }
 
         // Screen saver wake via MQTT
@@ -453,10 +455,6 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     }
 
     // Dummy setting - only update if field exists
-    if (doc.containsKey("dummy_setting")) {
-        strlcpy(current_config->dummy_setting, doc["dummy_setting"] | "", CONFIG_DUMMY_MAX_LEN);
-    }
-
     // MQTT host
     if (doc.containsKey("mqtt_host")) {
         strlcpy(current_config->mqtt_host, doc["mqtt_host"] | "", CONFIG_MQTT_HOST_MAX_LEN);
@@ -626,6 +624,13 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     }
     read_u16("energy_alarm_clear_delay_ms", &current_config->energy_alarm_clear_delay_ms, 0, 60000);
     read_i32("energy_alarm_clear_hysteresis_mkw", &current_config->energy_alarm_clear_hysteresis_mkw, 0, 100000);
+
+    if (doc.containsKey("energy_consumer_icon_color")) {
+        uint32_t rgb = current_config->energy_consumer_icon_color_rgb;
+        if (parse_color_hex_rgb(doc["energy_consumer_icon_color"], &rgb)) {
+            current_config->energy_consumer_icon_color_rgb = rgb;
+        }
+    }
 
     // Energy Monitor per-category colors + thresholds
     auto update_category = [&](const char* prefix, EnergyCategoryColorConfig* cfg) {

@@ -24,7 +24,6 @@
 #define KEY_GATEWAY        "gateway"
 #define KEY_DNS1           "dns1"
 #define KEY_DNS2           "dns2"
-#define KEY_DUMMY          "dummy"
 #define KEY_MQTT_HOST      "mqtt_host"
 #define KEY_MQTT_PORT      "mqtt_port"
 #define KEY_MQTT_USER      "mqtt_user"
@@ -71,6 +70,7 @@
 #define KEY_EN_GRD_T0 "eg_t0"
 #define KEY_EN_GRD_T1 "eg_t1"
 #define KEY_EN_GRD_T2 "eg_t2"
+#define KEY_EN_CONS_ICON_COLOR "ec_color"
 #define KEY_EN_CONS0_TOPIC "ec0_t"
 #define KEY_EN_CONS0_THRESH "ec0_th"
 #define KEY_EN_CONS0_ICON "ec0_i"
@@ -280,6 +280,7 @@ bool config_manager_load(DeviceConfig *config) {
             config->energy_consumers[i].threshold = 0.0f;
             config->energy_consumers[i].icon_id = 0;
         }
+        config->energy_consumer_icon_color_rgb = 0xFFFFFF;
 
         // Basic Auth defaults
         config->basic_auth_enabled = false;
@@ -320,9 +321,6 @@ bool config_manager_load(DeviceConfig *config) {
     preferences.getString(KEY_DNS1, config->dns1, CONFIG_IP_STR_MAX_LEN);
     preferences.getString(KEY_DNS2, config->dns2, CONFIG_IP_STR_MAX_LEN);
     
-    // Load dummy setting
-    preferences.getString(KEY_DUMMY, config->dummy_setting, CONFIG_DUMMY_MAX_LEN);
-
     // Load MQTT settings (all optional)
     preferences.getString(KEY_MQTT_HOST, config->mqtt_host, CONFIG_MQTT_HOST_MAX_LEN);
     config->mqtt_port = preferences.getUShort(KEY_MQTT_PORT, 0);
@@ -406,6 +404,7 @@ bool config_manager_load(DeviceConfig *config) {
         config->energy_consumers[i].threshold = preferences.getFloat(thresh_key, 0.0f);
         config->energy_consumers[i].icon_id = preferences.getUChar(icon_key, 0);
     }
+    config->energy_consumer_icon_color_rgb = preferences.getUInt(KEY_EN_CONS_ICON_COLOR, 0xFFFFFF);
     
     // Load display settings
     config->backlight_brightness = preferences.getUChar(KEY_BACKLIGHT_BRIGHTNESS, 100);
@@ -474,9 +473,6 @@ bool config_manager_save(const DeviceConfig *config) {
     preferences.putString(KEY_DNS1, config->dns1);
     preferences.putString(KEY_DNS2, config->dns2);
     
-    // Save dummy setting
-    preferences.putString(KEY_DUMMY, config->dummy_setting);
-
     // Save MQTT settings
     preferences.putString(KEY_MQTT_HOST, config->mqtt_host);
     preferences.putUShort(KEY_MQTT_PORT, config->mqtt_port);
@@ -542,6 +538,9 @@ bool config_manager_save(const DeviceConfig *config) {
     preferences.putInt(KEY_EN_GRD_T0, config->energy_grid_colors.threshold_mkw[0]);
     preferences.putInt(KEY_EN_GRD_T1, config->energy_grid_colors.threshold_mkw[1]);
     preferences.putInt(KEY_EN_GRD_T2, config->energy_grid_colors.threshold_mkw[2]);
+
+    // Save Energy Monitor consumer icon color
+    preferences.putUInt(KEY_EN_CONS_ICON_COLOR, config->energy_consumer_icon_color_rgb & 0xFFFFFF);
 
     // Save Energy Monitor consumers
     for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {

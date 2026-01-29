@@ -192,14 +192,7 @@ void EnergyMonitorScreen::create() {
     init_bar(&home_bar_bg, &home_bar_fill, 0);
     init_bar(&grid_bar_bg, &grid_bar_fill, col_dx);
 
-    // Consumer icons (bottom row)
-    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
-        consumer_icons[i] = lv_img_create(background);
-        lv_img_set_src(consumer_icons[i], &img_logo);
-        lv_obj_set_style_img_recolor(consumer_icons[i], lv_color_white(), 0);
-        lv_obj_set_style_img_recolor_opa(consumer_icons[i], LV_OPA_COVER, 0);
-        lv_obj_add_flag(consumer_icons[i], LV_OBJ_FLAG_HIDDEN);
-    }
+    // Consumer icons are created lazily in update() to avoid PSRAM timing issues at boot
 
     // Timer drives the alarm flip (background + contrast remap).
     // Start paused; it will be resumed when a T2 breach is detected.
@@ -246,6 +239,7 @@ void EnergyMonitorScreen::destroy() {
         for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
             consumer_icons[i] = nullptr;
         }
+        consumerIconsCreated = false;
     }
 }
 
@@ -594,6 +588,7 @@ void EnergyMonitorScreen::update() {
     set_kw_bar(grid_bar_fill, bar_width, bar_height, grid_kw, grid_max_w);
 
     // Consumer icons (bottom row)
+    // Determine which consumers are active (above threshold)
     uint8_t active_indices[ENERGY_CONSUMER_COUNT];
     uint8_t active_count = 0;
     if (config) {
@@ -607,6 +602,20 @@ void EnergyMonitorScreen::update() {
                 if (active_count >= ENERGY_CONSUMER_COUNT) break;
             }
         }
+    }
+
+    // Lazy-create consumer icons on first use (deferred from boot to avoid PSRAM timing issues)
+    if (!consumerIconsCreated && active_count > 0 && background) {
+        const lv_color_t icon_color = config
+            ? lv_color_from_rgb_u32(config->energy_consumer_icon_color_rgb)
+            : lv_color_white();
+        for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+            consumer_icons[i] = lv_img_create(background);
+            lv_obj_set_style_img_recolor(consumer_icons[i], icon_color, 0);
+            lv_obj_set_style_img_recolor_opa(consumer_icons[i], LV_OPA_COVER, 0);
+            lv_obj_add_flag(consumer_icons[i], LV_OBJ_FLAG_HIDDEN);
+        }
+        consumerIconsCreated = true;
     }
 
     for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
@@ -626,6 +635,10 @@ void EnergyMonitorScreen::update() {
             if (!icon) continue;
 
             const lv_img_dsc_t* src = energy_consumer_icon_from_id(config ? config->energy_consumers[idx].icon_id : 0);
+            const lv_color_t icon_color = config
+                ? lv_color_from_rgb_u32(config->energy_consumer_icon_color_rgb)
+                : lv_color_white();
+            lv_obj_set_style_img_recolor(icon, icon_color, 0);
             lv_img_set_src(icon, src);
             lv_obj_set_pos(icon, start_x + slot * (icon_size + gap), y);
             lv_obj_clear_flag(icon, LV_OBJ_FLAG_HIDDEN);
