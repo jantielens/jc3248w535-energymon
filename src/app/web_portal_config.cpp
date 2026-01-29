@@ -126,7 +126,7 @@ void handleGetConfig(AsyncWebServerRequest *request) {
     }
 
     // Create JSON response (don't include passwords)
-    std::shared_ptr<BasicJsonDocument<PsramJsonAllocator>> doc = make_psram_json_doc(4096);
+    std::shared_ptr<BasicJsonDocument<PsramJsonAllocator>> doc = make_psram_json_doc(5120);
     if (doc && doc->capacity() > 0) {
         (*doc)["wifi_ssid"] = current_config->wifi_ssid;
         (*doc)["wifi_password"] = ""; // Don't send password
@@ -159,6 +159,18 @@ void handleGetConfig(AsyncWebServerRequest *request) {
         (*doc)["mqtt_topic_grid"] = current_config->mqtt_topic_grid;
         (*doc)["mqtt_solar_value_path"] = current_config->mqtt_solar_value_path;
         (*doc)["mqtt_grid_value_path"] = current_config->mqtt_grid_value_path;
+
+        // Energy Monitor consumer indicators
+        for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+            char key[48];
+            const uint8_t idx = (uint8_t)(i + 1u);
+            snprintf(key, sizeof(key), "energy_consumer_%u_topic", idx);
+            (*doc)[key] = current_config->energy_consumers[i].topic;
+            snprintf(key, sizeof(key), "energy_consumer_%u_threshold", idx);
+            (*doc)[key] = current_config->energy_consumers[i].threshold;
+            snprintf(key, sizeof(key), "energy_consumer_%u_icon_id", idx);
+            (*doc)[key] = current_config->energy_consumers[i].icon_id;
+        }
 
         // Screen saver wake via MQTT
         (*doc)["mqtt_wake_topic"] = current_config->mqtt_wake_topic;
@@ -261,6 +273,7 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     char prev_mqtt_wake_topic[CONFIG_MQTT_TOPIC_MAX_LEN] = {0};
     char prev_mqtt_wake_value_path[CONFIG_MQTT_VALUE_PATH_MAX_LEN] = {0};
     char prev_mqtt_wake_payload[CONFIG_MQTT_WAKE_PAYLOAD_MAX_LEN] = {0};
+    char prev_consumer_topics[ENERGY_CONSUMER_COUNT][CONFIG_MQTT_TOPIC_MAX_LEN] = {0};
     uint16_t prev_mqtt_port = current_config->mqtt_port;
 
     strlcpy(prev_mqtt_host, current_config->mqtt_host, sizeof(prev_mqtt_host));
@@ -271,6 +284,9 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     strlcpy(prev_mqtt_wake_topic, current_config->mqtt_wake_topic, sizeof(prev_mqtt_wake_topic));
     strlcpy(prev_mqtt_wake_value_path, current_config->mqtt_wake_value_path, sizeof(prev_mqtt_wake_value_path));
     strlcpy(prev_mqtt_wake_payload, current_config->mqtt_wake_payload, sizeof(prev_mqtt_wake_payload));
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        strlcpy(prev_consumer_topics[i], current_config->energy_consumers[i].topic, CONFIG_MQTT_TOPIC_MAX_LEN);
+    }
     #endif
 
     // Accumulate the full body (chunk-safe) then parse once.
@@ -497,6 +513,41 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
     }
     if (strlen(current_config->mqtt_grid_value_path) == 0) {
         strlcpy(current_config->mqtt_grid_value_path, ".", CONFIG_MQTT_VALUE_PATH_MAX_LEN);
+    }
+
+    // Energy Monitor consumer indicators
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        char key[48];
+        const uint8_t idx = (uint8_t)(i + 1u);
+
+        snprintf(key, sizeof(key), "energy_consumer_%u_topic", idx);
+        if (doc.containsKey(key)) {
+            strlcpy(current_config->energy_consumers[i].topic, doc[key] | "", CONFIG_MQTT_TOPIC_MAX_LEN);
+        }
+
+        snprintf(key, sizeof(key), "energy_consumer_%u_threshold", idx);
+        if (doc.containsKey(key)) {
+            float v;
+            if (doc[key].is<const char*>()) {
+                const char* s = doc[key];
+                v = s ? (float)atof(s) : 0.0f;
+            } else {
+                v = (float)(doc[key] | 0.0f);
+            }
+            current_config->energy_consumers[i].threshold = v;
+        }
+
+        snprintf(key, sizeof(key), "energy_consumer_%u_icon_id", idx);
+        if (doc.containsKey(key)) {
+            uint32_t v;
+            if (doc[key].is<const char*>()) {
+                const char* s = doc[key];
+                v = (uint32_t)atoi(s ? s : "0");
+            } else {
+                v = (uint32_t)(doc[key] | 0);
+            }
+            current_config->energy_consumers[i].icon_id = (uint8_t)v;
+        }
     }
 
     // Screen saver wake via MQTT
@@ -769,6 +820,13 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
                               (strcmp(prev_mqtt_wake_topic, current_config->mqtt_wake_topic) != 0) ||
                               (strcmp(prev_mqtt_wake_value_path, current_config->mqtt_wake_value_path) != 0) ||
                               (strcmp(prev_mqtt_wake_payload, current_config->mqtt_wake_payload) != 0);
+    bool consumer_topics_changed = false;
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        if (strcmp(prev_consumer_topics[i], current_config->energy_consumers[i].topic) != 0) {
+            consumer_topics_changed = true;
+            break;
+        }
+    }
     #endif
 
     current_config->magic = CONFIG_MAGIC;
@@ -799,7 +857,7 @@ void handlePostConfig(AsyncWebServerRequest *request, uint8_t *data, size_t len,
             ESP.restart();
         } else {
             #if HAS_MQTT
-            if (mqtt_changed) {
+            if (mqtt_changed || consumer_topics_changed) {
                 g_pending_mqtt_reconnect_request = true;
             }
             #endif

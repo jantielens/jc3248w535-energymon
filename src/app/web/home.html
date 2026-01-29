@@ -56,6 +56,136 @@
 
                 <hr style="border: none; border-top: 1px solid #e5e5ea; margin: 18px 0;">
 
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #1d1d1f;">Consumers (Optional)</h3>
+                <small style="display:block; margin-bottom: 12px;">Empty topic disables a consumer. Active when value &gt; threshold.</small>
+
+                <div class="energy-category">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #1d1d1f;">Consumer 1</h4>
+                    <div class="grid-2col">
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_1_topic">Topic</label>
+                                <input type="text" id="energy_consumer_1_topic" name="energy_consumer_1_topic" maxlength="127" placeholder="e.g. home/consumers/car">
+                                <small>Numeric MQTT payload.</small>
+                            </div>
+                        </section>
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_1_threshold">Threshold</label>
+                                <input type="number" id="energy_consumer_1_threshold" name="energy_consumer_1_threshold" step="0.1" placeholder="1.0">
+                                <small>Same unit as topic.</small>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="form-group">
+                        <label for="energy_consumer_1_icon_id">Icon</label>
+                        <select id="energy_consumer_1_icon_id" name="energy_consumer_1_icon_id" data-consumer-icon></select>
+                        <small>List reflects icons compiled into firmware.</small>
+                    </div>
+                </div>
+
+                <div class="energy-category">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #1d1d1f;">Consumer 2</h4>
+                    <div class="grid-2col">
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_2_topic">Topic</label>
+                                <input type="text" id="energy_consumer_2_topic" name="energy_consumer_2_topic" maxlength="127" placeholder="e.g. home/consumers/dishwasher">
+                                <small>Numeric MQTT payload.</small>
+                            </div>
+                        </section>
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_2_threshold">Threshold</label>
+                                <input type="number" id="energy_consumer_2_threshold" name="energy_consumer_2_threshold" step="0.1" placeholder="1.0">
+                                <small>Same unit as topic.</small>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="form-group">
+                        <label for="energy_consumer_2_icon_id">Icon</label>
+                        <select id="energy_consumer_2_icon_id" name="energy_consumer_2_icon_id" data-consumer-icon></select>
+                        <small>List reflects icons compiled into firmware.</small>
+                    </div>
+                </div>
+
+                <div class="energy-category">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #1d1d1f;">Consumer 3</h4>
+                    <div class="grid-2col">
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_3_topic">Topic</label>
+                                <input type="text" id="energy_consumer_3_topic" name="energy_consumer_3_topic" maxlength="127" placeholder="e.g. home/consumers/washer">
+                                <small>Numeric MQTT payload.</small>
+                            </div>
+                        </section>
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_3_threshold">Threshold</label>
+                                <input type="number" id="energy_consumer_3_threshold" name="energy_consumer_3_threshold" step="0.1" placeholder="1.0">
+                                <small>Same unit as topic.</small>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="form-group">
+                        <label for="energy_consumer_3_icon_id">Icon</label>
+                        <select id="energy_consumer_3_icon_id" name="energy_consumer_3_icon_id" data-consumer-icon></select>
+                        <small>List reflects icons compiled into firmware.</small>
+                    </div>
+                </div>
+
+                <div class="energy-category">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #1d1d1f;">Consumer 4</h4>
+                    <div class="grid-2col">
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_4_topic">Topic</label>
+                                <input type="text" id="energy_consumer_4_topic" name="energy_consumer_4_topic" maxlength="127" placeholder="e.g. home/consumers/hvac">
+                                <small>Numeric MQTT payload.</small>
+                            </div>
+                        </section>
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_4_threshold">Threshold</label>
+                                <input type="number" id="energy_consumer_4_threshold" name="energy_consumer_4_threshold" step="0.1" placeholder="1.0">
+                                <small>Same unit as topic.</small>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="form-group">
+                        <label for="energy_consumer_4_icon_id">Icon</label>
+                        <select id="energy_consumer_4_icon_id" name="energy_consumer_4_icon_id" data-consumer-icon></select>
+                        <small>List reflects icons compiled into firmware.</small>
+                    </div>
+                </div>
+
+                <div class="energy-category">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #1d1d1f;">Consumer 5</h4>
+                    <div class="grid-2col">
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_5_topic">Topic</label>
+                                <input type="text" id="energy_consumer_5_topic" name="energy_consumer_5_topic" maxlength="127" placeholder="e.g. home/consumers/pool">
+                                <small>Numeric MQTT payload.</small>
+                            </div>
+                        </section>
+                        <section class="section" style="padding: 0; background: transparent; box-shadow: none;">
+                            <div class="form-group">
+                                <label for="energy_consumer_5_threshold">Threshold</label>
+                                <input type="number" id="energy_consumer_5_threshold" name="energy_consumer_5_threshold" step="0.1" placeholder="1.0">
+                                <small>Same unit as topic.</small>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="form-group">
+                        <label for="energy_consumer_5_icon_id">Icon</label>
+                        <select id="energy_consumer_5_icon_id" name="energy_consumer_5_icon_id" data-consumer-icon></select>
+                        <small>List reflects icons compiled into firmware.</small>
+                    </div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e5e5ea; margin: 18px 0;">
+
                 <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #1d1d1f;">Screen Saver Wake (MQTT)</h3>
                 <div class="form-group">
                     <label for="mqtt_wake_topic">Wake Topic</label>

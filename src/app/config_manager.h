@@ -52,6 +52,15 @@ struct EnergyCategoryColorConfig {
     int32_t threshold_mkw[3];
 };
 
+// Energy monitor consumer indicators
+#define ENERGY_CONSUMER_COUNT 5
+
+struct EnergyConsumerConfig {
+    char topic[CONFIG_MQTT_TOPIC_MAX_LEN];
+    float threshold;
+    uint8_t icon_id;
+};
+
 // Configuration structure
 struct DeviceConfig {
     // WiFi credentials
@@ -109,6 +118,9 @@ struct DeviceConfig {
     EnergyCategoryColorConfig energy_solar_colors;
     EnergyCategoryColorConfig energy_home_colors;
     EnergyCategoryColorConfig energy_grid_colors;
+
+    // Energy monitor consumer indicators (optional)
+    EnergyConsumerConfig energy_consumers[ENERGY_CONSUMER_COUNT];
     
     // Display settings
     uint8_t backlight_brightness;  // 0-100%, default 100

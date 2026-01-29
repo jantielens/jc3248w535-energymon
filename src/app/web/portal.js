@@ -94,6 +94,21 @@ function showMessage(message, type = 'info') {
 
 // ===== ENERGY MONITOR UI HELPERS =====
 
+const ENERGY_CONSUMER_COUNT = 5;
+const ENERGY_CONSUMER_ICON_OPTIONS = [
+    { id: 0, label: 'Car' },
+    { id: 1, label: 'Dishwasher' },
+    { id: 2, label: 'Washing Machine' },
+    { id: 3, label: 'Dryer' },
+    { id: 4, label: 'Heat' },
+    { id: 5, label: 'Cooling' },
+    { id: 6, label: 'Kitchen' },
+    { id: 7, label: 'Home' },
+    { id: 8, label: 'Grid' },
+    { id: 9, label: 'Sun' },
+    { id: 10, label: 'Logo' },
+];
+
 function formatKwForLabel(value) {
     if (value === null || value === undefined) return '';
     const num = Number(value);
@@ -149,6 +164,23 @@ function initEnergyMonitorThresholdMaps() {
 
         container.dataset.energyMapInit = '1';
         updateEnergyThresholdMapLabels(prefix);
+    });
+}
+
+function initEnergyConsumerIconSelects() {
+    const selects = document.querySelectorAll('select[data-consumer-icon]');
+    if (!selects || selects.length === 0) return;
+
+    selects.forEach(select => {
+        if (select.dataset.iconInit === '1') return;
+        select.innerHTML = '';
+        ENERGY_CONSUMER_ICON_OPTIONS.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = String(opt.id);
+            option.textContent = opt.label;
+            select.appendChild(option);
+        });
+        select.dataset.iconInit = '1';
     });
 }
 
@@ -673,6 +705,16 @@ async function loadConfig() {
         setValueIfExists('mqtt_solar_value_path', config.mqtt_solar_value_path);
         setValueIfExists('mqtt_grid_value_path', config.mqtt_grid_value_path);
 
+        // Energy Monitor consumers
+        for (let i = 1; i <= ENERGY_CONSUMER_COUNT; i++) {
+            const topicKey = `energy_consumer_${i}_topic`;
+            const thresholdKey = `energy_consumer_${i}_threshold`;
+            const iconKey = `energy_consumer_${i}_icon_id`;
+            setValueIfExists(topicKey, config[topicKey]);
+            setValueIfExists(thresholdKey, config[thresholdKey]);
+            setValueIfExists(iconKey, config[iconKey]);
+        }
+
         // Screen saver wake via MQTT
         setValueIfExists('mqtt_wake_topic', config.mqtt_wake_topic);
         setValueIfExists('mqtt_wake_value_path', config.mqtt_wake_value_path);
@@ -790,6 +832,12 @@ function extractFormFields(formData) {
                     'basic_auth_enabled', 'basic_auth_username', 'basic_auth_password',
                     'backlight_brightness',
                     'screen_saver_enabled', 'screen_saver_timeout_seconds', 'screen_saver_fade_out_ms', 'screen_saver_fade_in_ms', 'screen_saver_wake_on_touch'];
+
+    for (let i = 1; i <= ENERGY_CONSUMER_COUNT; i++) {
+        fields.push(`energy_consumer_${i}_topic`);
+        fields.push(`energy_consumer_${i}_threshold`);
+        fields.push(`energy_consumer_${i}_icon_id`);
+    }
     
     fields.forEach(field => {
         const element = document.querySelector(`[name="${field}"]`);
@@ -1271,6 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Energy Monitor threshold maps (if present on the page)
     initEnergyMonitorThresholdMaps();
+    initEnergyConsumerIconSelects();
     
     // Attach event handlers (check if elements exist for multi-page support)
     const configForm = document.getElementById('config-form');

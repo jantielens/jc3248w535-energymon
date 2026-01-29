@@ -192,6 +192,15 @@ void EnergyMonitorScreen::create() {
     init_bar(&home_bar_bg, &home_bar_fill, 0);
     init_bar(&grid_bar_bg, &grid_bar_fill, col_dx);
 
+    // Consumer icons (bottom row)
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        consumer_icons[i] = lv_img_create(background);
+        lv_img_set_src(consumer_icons[i], &img_logo);
+        lv_obj_set_style_img_recolor(consumer_icons[i], lv_color_white(), 0);
+        lv_obj_set_style_img_recolor_opa(consumer_icons[i], LV_OPA_COVER, 0);
+        lv_obj_add_flag(consumer_icons[i], LV_OBJ_FLAG_HIDDEN);
+    }
+
     // Timer drives the alarm flip (background + contrast remap).
     // Start paused; it will be resumed when a T2 breach is detected.
     if (!alarmTimer) {
@@ -234,6 +243,9 @@ void EnergyMonitorScreen::destroy() {
         home_bar_fill = nullptr;
         grid_bar_bg = nullptr;
         grid_bar_fill = nullptr;
+        for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+            consumer_icons[i] = nullptr;
+        }
     }
 }
 
@@ -406,6 +418,23 @@ static lv_color_t pick_category_color(const EnergyCategoryColorConfig* cfg, floa
     return lv_color_from_rgb_u32(rgb);
 }
 
+static const lv_img_dsc_t* energy_consumer_icon_from_id(uint8_t icon_id) {
+    switch (icon_id) {
+        case 0: return &img_car;
+        case 1: return &img_dishwasher;
+        case 2: return &img_washing;
+        case 3: return &img_drying;
+        case 4: return &img_heat;
+        case 5: return &img_cool;
+        case 6: return &img_kitchen;
+        case 7: return &img_home;
+        case 8: return &img_grid;
+        case 9: return &img_sun;
+        case 10: return &img_logo;
+        default: return &img_logo;
+    }
+}
+
 void EnergyMonitorScreen::update() {
     if (!screen) return;
 
@@ -416,6 +445,12 @@ void EnergyMonitorScreen::update() {
 
     EnergyMonitorState st = energy_monitor_get_state(true /*clear_updates*/);
     bool shouldRefresh = st.solar_updated || st.grid_updated;
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        if (st.consumer_updated[i]) {
+            shouldRefresh = true;
+            break;
+        }
+    }
 
     if (!shouldRefresh) {
         if (lastRenderMs != 0 && (uint32_t)(now - lastRenderMs) < kFallbackRefreshMs) {
@@ -557,4 +592,43 @@ void EnergyMonitorScreen::update() {
     set_kw_bar(solar_bar_fill, bar_width, bar_height, solar_kw, solar_max_w);
     set_kw_bar(home_bar_fill, bar_width, bar_height, home_kw, home_max_w);
     set_kw_bar(grid_bar_fill, bar_width, bar_height, grid_kw, grid_max_w);
+
+    // Consumer icons (bottom row)
+    uint8_t active_indices[ENERGY_CONSUMER_COUNT];
+    uint8_t active_count = 0;
+    if (config) {
+        for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+            const EnergyConsumerConfig& cons = config->energy_consumers[i];
+            if (strlen(cons.topic) == 0) continue;
+            const float v = st.consumer_values[i];
+            if (isnan(v)) continue;
+            if (v > cons.threshold) {
+                active_indices[active_count++] = i;
+                if (active_count >= ENERGY_CONSUMER_COUNT) break;
+            }
+        }
+    }
+
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        if (consumer_icons[i]) lv_obj_add_flag(consumer_icons[i], LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (active_count > 0) {
+        const int32_t icon_size = 50;
+        const int32_t gap = 12;
+        const int32_t total_width = (int32_t)active_count * icon_size + (int32_t)(active_count - 1u) * gap;
+        const int32_t start_x = (int32_t)((LV_HOR_RES - total_width) / 2);
+        const int32_t y = (int32_t)(LV_VER_RES - icon_size - 12);
+
+        for (uint8_t slot = 0; slot < active_count && slot < ENERGY_CONSUMER_COUNT; slot++) {
+            const uint8_t idx = active_indices[slot];
+            lv_obj_t* icon = consumer_icons[slot];
+            if (!icon) continue;
+
+            const lv_img_dsc_t* src = energy_consumer_icon_from_id(config ? config->energy_consumers[idx].icon_id : 0);
+            lv_img_set_src(icon, src);
+            lv_obj_set_pos(icon, start_x + slot * (icon_size + gap), y);
+            lv_obj_clear_flag(icon, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
 }

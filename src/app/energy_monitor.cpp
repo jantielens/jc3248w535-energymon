@@ -31,6 +31,11 @@ void energy_monitor_init() {
     s_state.grid_updated = false;
     s_state.solar_update_ms = 0;
     s_state.grid_update_ms = 0;
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        s_state.consumer_values[i] = NAN;
+        s_state.consumer_updated[i] = false;
+        s_state.consumer_update_ms[i] = 0;
+    }
     portEXIT_CRITICAL(&s_energy_mux);
 }
 
@@ -50,6 +55,15 @@ void energy_monitor_set_grid(float value, uint32_t now_ms) {
     portEXIT_CRITICAL(&s_energy_mux);
 }
 
+void energy_monitor_set_consumer_value(uint8_t index, float value, uint32_t now_ms) {
+    if (index >= ENERGY_CONSUMER_COUNT) return;
+    portENTER_CRITICAL(&s_energy_mux);
+    s_state.consumer_values[index] = value;
+    s_state.consumer_updated[index] = true;
+    s_state.consumer_update_ms[index] = now_ms;
+    portEXIT_CRITICAL(&s_energy_mux);
+}
+
 EnergyMonitorState energy_monitor_get_state(bool clear_updates) {
     EnergyMonitorState copy;
     portENTER_CRITICAL(&s_energy_mux);
@@ -57,6 +71,9 @@ EnergyMonitorState energy_monitor_get_state(bool clear_updates) {
     if (clear_updates) {
         s_state.solar_updated = false;
         s_state.grid_updated = false;
+        for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+            s_state.consumer_updated[i] = false;
+        }
     }
     portEXIT_CRITICAL(&s_energy_mux);
     return copy;

@@ -205,6 +205,7 @@ Real-time device health monitoring integrated as a header badge with expandable 
 - **⚙️ Sample Settings**: Example configuration field (dummy_setting)
 - **⚡ Energy Monitor**: Optional MQTT-driven energy monitor settings
   - MQTT topics + value paths for Solar/Grid readings
+  - Consumer indicators: up to 5 consumer topics, thresholds, and icon IDs
   - Bar scaling (kW) for Solar/Home/Grid
   - Per-category colors + thresholds (T0/T1/T2)
   - Warning behavior (breathing pulse, clear delay, hysteresis)
@@ -549,6 +550,10 @@ Returns current device configuration (passwords excluded).
 - Some fields are build-time gated.
   - Display-related fields (backlight + screen saver) are present when `HAS_DISPLAY` is enabled.
   - Other feature-specific fields may be present depending on firmware configuration.
+ - Energy consumer indicators use fields:
+   - `energy_consumer_1_topic` ... `energy_consumer_5_topic`
+   - `energy_consumer_1_threshold` ... `energy_consumer_5_threshold`
+   - `energy_consumer_1_icon_id` ... `energy_consumer_5_icon_id`
 
 #### `POST /api/config`
 
@@ -596,6 +601,7 @@ Save new configuration. Device reboots after successful save.
 - In Core Mode (AP mode), Basic Auth settings cannot be changed via `POST /api/config`.
 - Device automatically reboots after successful save
 - Web portal automatically polls for reconnection (see [Automatic Reconnection](#automatic-reconnection-after-reboot))
+ - Energy consumer indicator fields follow the same naming scheme as GET: `energy_consumer_{1..5}_topic`, `energy_consumer_{1..5}_threshold`, `energy_consumer_{1..5}_icon_id`
 
 #### `DELETE /api/config`
 

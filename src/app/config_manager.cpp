@@ -71,6 +71,21 @@
 #define KEY_EN_GRD_T0 "eg_t0"
 #define KEY_EN_GRD_T1 "eg_t1"
 #define KEY_EN_GRD_T2 "eg_t2"
+#define KEY_EN_CONS0_TOPIC "ec0_t"
+#define KEY_EN_CONS0_THRESH "ec0_th"
+#define KEY_EN_CONS0_ICON "ec0_i"
+#define KEY_EN_CONS1_TOPIC "ec1_t"
+#define KEY_EN_CONS1_THRESH "ec1_th"
+#define KEY_EN_CONS1_ICON "ec1_i"
+#define KEY_EN_CONS2_TOPIC "ec2_t"
+#define KEY_EN_CONS2_THRESH "ec2_th"
+#define KEY_EN_CONS2_ICON "ec2_i"
+#define KEY_EN_CONS3_TOPIC "ec3_t"
+#define KEY_EN_CONS3_THRESH "ec3_th"
+#define KEY_EN_CONS3_ICON "ec3_i"
+#define KEY_EN_CONS4_TOPIC "ec4_t"
+#define KEY_EN_CONS4_THRESH "ec4_th"
+#define KEY_EN_CONS4_ICON "ec4_i"
 #define KEY_BACKLIGHT_BRIGHTNESS "bl_bright"
 
 // Web portal Basic Auth
@@ -109,6 +124,42 @@ static void normalize_energy_thresholds(EnergyCategoryColorConfig* cfg) {
     // Require monotonic order; if invalid, reset to defaults.
     if (cfg->threshold_mkw[0] > cfg->threshold_mkw[1] || cfg->threshold_mkw[1] > cfg->threshold_mkw[2]) {
         set_energy_defaults(cfg);
+    }
+}
+
+static void energy_consumer_keys(uint8_t index, const char** topic_key, const char** thresh_key, const char** icon_key) {
+    if (topic_key) *topic_key = nullptr;
+    if (thresh_key) *thresh_key = nullptr;
+    if (icon_key) *icon_key = nullptr;
+
+    switch (index) {
+        case 0:
+            if (topic_key) *topic_key = KEY_EN_CONS0_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS0_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS0_ICON;
+            break;
+        case 1:
+            if (topic_key) *topic_key = KEY_EN_CONS1_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS1_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS1_ICON;
+            break;
+        case 2:
+            if (topic_key) *topic_key = KEY_EN_CONS2_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS2_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS2_ICON;
+            break;
+        case 3:
+            if (topic_key) *topic_key = KEY_EN_CONS3_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS3_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS3_ICON;
+            break;
+        case 4:
+            if (topic_key) *topic_key = KEY_EN_CONS4_TOPIC;
+            if (thresh_key) *thresh_key = KEY_EN_CONS4_THRESH;
+            if (icon_key) *icon_key = KEY_EN_CONS4_ICON;
+            break;
+        default:
+            break;
     }
 }
 
@@ -223,6 +274,13 @@ bool config_manager_load(DeviceConfig *config) {
         set_energy_defaults(&config->energy_home_colors);
         set_energy_defaults(&config->energy_grid_colors);
 
+        // Energy monitor consumers (optional)
+        for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+            config->energy_consumers[i].topic[0] = '\0';
+            config->energy_consumers[i].threshold = 0.0f;
+            config->energy_consumers[i].icon_id = 0;
+        }
+
         // Basic Auth defaults
         config->basic_auth_enabled = false;
         config->basic_auth_username[0] = '\0';
@@ -335,6 +393,19 @@ bool config_manager_load(DeviceConfig *config) {
     config->energy_grid_colors.threshold_mkw[1] = preferences.getInt(KEY_EN_GRD_T1, 1500);
     config->energy_grid_colors.threshold_mkw[2] = preferences.getInt(KEY_EN_GRD_T2, 3000);
     normalize_energy_thresholds(&config->energy_grid_colors);
+
+    // Energy Monitor consumers (optional)
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        const char* topic_key = nullptr;
+        const char* thresh_key = nullptr;
+        const char* icon_key = nullptr;
+        energy_consumer_keys(i, &topic_key, &thresh_key, &icon_key);
+        if (!topic_key || !thresh_key || !icon_key) continue;
+
+        preferences.getString(topic_key, config->energy_consumers[i].topic, CONFIG_MQTT_TOPIC_MAX_LEN);
+        config->energy_consumers[i].threshold = preferences.getFloat(thresh_key, 0.0f);
+        config->energy_consumers[i].icon_id = preferences.getUChar(icon_key, 0);
+    }
     
     // Load display settings
     config->backlight_brightness = preferences.getUChar(KEY_BACKLIGHT_BRIGHTNESS, 100);
@@ -471,6 +542,19 @@ bool config_manager_save(const DeviceConfig *config) {
     preferences.putInt(KEY_EN_GRD_T0, config->energy_grid_colors.threshold_mkw[0]);
     preferences.putInt(KEY_EN_GRD_T1, config->energy_grid_colors.threshold_mkw[1]);
     preferences.putInt(KEY_EN_GRD_T2, config->energy_grid_colors.threshold_mkw[2]);
+
+    // Save Energy Monitor consumers
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        const char* topic_key = nullptr;
+        const char* thresh_key = nullptr;
+        const char* icon_key = nullptr;
+        energy_consumer_keys(i, &topic_key, &thresh_key, &icon_key);
+        if (!topic_key || !thresh_key || !icon_key) continue;
+
+        preferences.putString(topic_key, config->energy_consumers[i].topic);
+        preferences.putFloat(thresh_key, config->energy_consumers[i].threshold);
+        preferences.putUChar(icon_key, config->energy_consumers[i].icon_id);
+    }
     
     // Save display settings
     LOGI("Config", "Saving brightness: %d%%", config->backlight_brightness);

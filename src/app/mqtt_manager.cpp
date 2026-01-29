@@ -172,6 +172,15 @@ void MqttManager::subscribeEnergyMonitorTopics() {
         any = any || ok;
     }
 
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        const char* topic = _config->energy_consumers[i].topic;
+        if (topic && strlen(topic) > 0) {
+            bool ok = _client.subscribe(topic);
+            LOGI("MQTT", "Subscribe consumer %u '%s': %s", (unsigned)i + 1u, topic, ok ? "OK" : "FAIL");
+            any = any || ok;
+        }
+    }
+
     _energy_subscriptions_active = any;
 }
 
@@ -234,6 +243,25 @@ void MqttManager::handleIncomingMessage(const char *topic, const uint8_t *payloa
             LOGI("MQTT", "Wake trigger: %s -> %.*s", topic, (int)length, (const char*)payload);
             screen_saver_manager_notify_activity(true);
         }
+        return;
+    }
+
+    for (uint8_t i = 0; i < ENERGY_CONSUMER_COUNT; i++) {
+        const char* consumer_topic = _config->energy_consumers[i].topic;
+        if (!consumer_topic || strlen(consumer_topic) == 0) continue;
+        if (strcmp(topic, consumer_topic) != 0) continue;
+
+        bool ok = false;
+        float v = parse_float_from_payload(payload, length, &ok);
+        energy_monitor_set_consumer_value(i, ok ? v : NAN, now);
+
+        char buf[24];
+        if (ok) {
+            snprintf(buf, sizeof(buf), "%.3f", (double)v);
+        } else {
+            strlcpy(buf, "NAN", sizeof(buf));
+        }
+        LOGI("MQTT", "Energy consumer %u update: %s -> %s", (unsigned)i + 1u, topic, buf);
         return;
     }
 }
