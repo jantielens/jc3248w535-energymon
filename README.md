@@ -79,3 +79,4 @@ Use the **Firmware** page to:
 - If the portal isn’t reachable, reconnect to the device AP and reconfigure Wi‑Fi.
 - If values don’t update, verify MQTT topics and value paths.
 - For consumer icons, confirm the topic publishes numbers above the threshold.
+- **Boot Issues**: If the device hangs during boot, see [USB CDC Boot Fix](docs/usb-cdc-boot-fix.md). The device is designed to work with or without a serial monitor attached.

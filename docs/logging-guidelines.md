@@ -56,3 +56,13 @@ Additional tags used:
 ## Notes
 - Flat logging is intentional to avoid cross-task nesting corruption.
 - Duration tracking is explicit via `LOG_DURATION()`.
+
+## USB CDC Behavior
+
+For boards with USB CDC enabled (`CDCOnBoot=cdc`), the logging system includes a 5-second timeout mechanism:
+
+- **With Serial Monitor**: Logs appear normally after USB CDC enumeration (typically <1 second)
+- **Without Serial Monitor**: Logging is disabled after 5-second timeout, device continues booting normally
+- **Standalone Deployment**: Device works perfectly without any USB connection
+
+This prevents boot hangs when no serial monitor is attached. See [USB CDC Boot Fix](usb-cdc-boot-fix.md) for technical details.
