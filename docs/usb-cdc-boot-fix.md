@@ -42,48 +42,17 @@ LOGI("SYS", "Boot");  // This would hang without the fix
 
 ## Solution
 
-Implemented a timeout mechanism that:
-1. Waits up to 5 seconds for USB CDC enumeration
-2. After timeout, disables logging but allows boot to continue
-3. If USB CDC becomes available within timeout, logging works normally
+The fix is to make USB CDC logging **non-blocking** and to **give up quickly** if the host isn’t consuming output.
 
-### Code Changes
+On USB CDC boards (`CDCOnBoot=cdc`), we:
 
-**1. Added timeout to `log_manager.cpp`:**
+1. **Gate logging on TX space**: only attempt a write when `Serial.availableForWrite()` reports there is room.
+2. **Avoid partial writes**: only write a log line if the entire line fits in the available TX space; otherwise drop it.
+3. **Fail-safe disable**: if no TX space becomes available within `USB_CDC_TIMEOUT_MS` (now 1000ms), disable USB CDC logging for the remainder of that boot.
 
-```cpp
-static unsigned long g_log_init_time_ms = 0;
-#define USB_CDC_TIMEOUT_MS 5000  // 5 seconds
+This prevents watchdog resets / boot hangs caused by blocking USB CDC writes when no serial monitor is open.
 
-static inline bool serial_ready_for_logging() {
-#if defined(ARDUINO_USB_CDC_ON_BOOT) && (ARDUINO_USB_CDC_ON_BOOT == 1)
-    if (!g_log_manager_begun) {
-        return false;
-    }
-    
-    // Check if Serial is ready (USB CDC enumerated)
-    if (Serial) {
-        return true;
-    }
-    
-    // After timeout, disable logging but allow boot to continue
-    const unsigned long elapsed = millis() - g_log_init_time_ms;
-    return elapsed < USB_CDC_TIMEOUT_MS;
-#else
-    return g_log_manager_begun;
-#endif
-}
-
-void log_init(unsigned long baud) {
-    Serial.begin(baud);
-    g_log_manager_begun = true;
-    g_log_init_time_ms = millis();  // Record init time for timeout
-}
-```
-
-**2. Removed unnecessary delay in `app.ino`:**
-
-The 1-second delay after `log_init()` was removed as it's no longer needed. The timeout mechanism handles USB CDC enumeration timing.
+In addition, the old boot-time `delay(1000)` after `log_init()` was removed from `app.ino` because it wasn’t solving the root cause.
 
 ## Behavior After Fix
 
@@ -93,60 +62,33 @@ The 1-second delay after `log_init()` was removed as it's no longer needed. The 
 - Boot completes in ~2-3 seconds
 
 ### Without Serial Monitor Attached
-- Device waits up to 5 seconds for USB CDC
+- Device waits up to 1 second for USB CDC
 - After timeout, logging is silently disabled
 - Boot continues normally
 - Device functions properly for standalone deployment
 
 ### Log Output Timing
 
-During the 5-second timeout window, logs may be buffered. Once USB CDC enumerates:
-- Buffered logs are flushed
-- Real-time logging begins
-- All boot messages are captured
-
-After the timeout (if no USB CDC):
-- Logging calls return immediately (no-op)
-- Zero performance impact
-- Device boots normally
-
-## Testing
-
-### Test Case 1: Boot with Serial Monitor
-**Expected**: All boot logs appear, device functions normally
-
-### Test Case 2: Boot without Serial Monitor
-**Expected**: Device boots without hanging, functions normally, no logs
-
-### Test Case 3: Connect Serial Monitor During Boot
-**Expected**: Some logs appear after connection (depending on timing)
-
-### Test Case 4: Connect Serial Monitor After Boot
-**Expected**: Only logs after connection time appear
+- Logs that can’t be written immediately are **dropped** (no buffering).
+- If a serial monitor is open and consuming output, logs appear normally.
+- If no monitor is consuming output for the first ~1 second, USB CDC logging becomes a no-op for that boot.
 
 ## Benefits
-
-1. **Standalone Operation**: Device can run without USB connection
+- Host consumes USB CDC output
+- Logs are printed normally
 2. **No Boot Delays**: Minimal impact when USB CDC not available
 3. **Maintains Logging**: Full logging support when USB CDC is available
-4. **Backwards Compatible**: Hardware UART boards unaffected
-5. **Safe Timeout**: 5 seconds is sufficient for USB enumeration
+- Device does not block on logging
+- After 1 second of no writable TX space, USB CDC logging is disabled
 
 ## Alternative Solutions Considered
 
-### Option 1: Disable CDC entirely
-- Would lose USB Serial capability completely
-- Not acceptable for debugging and development
+### Log Output Timing
 
-### Option 2: Conditional compilation
-- Would require different firmware builds for production vs debug
-- Increases maintenance burden
-- Still need to handle timeout case
-
+We intentionally drop logs when USB CDC can’t accept data to keep boot deterministic and avoid watchdog resets.
 ### Option 3: Shorter timeout (e.g., 1 second)
-- May not be enough time for USB enumeration in all cases
-- USB CDC can take 2-3 seconds on some hosts
-- 5 seconds is a safer choice
+- Fast boot and still captures logs when a monitor is already open
+- If your host enumerates slowly, you may miss the earliest boot logs
 
 ### Option 4: No timeout (wait forever with delay)
 - Would still block boot if USB never connects

@@ -79,7 +79,7 @@ void setup()
   // Initialize logger (wraps Serial for web streaming)
   log_init(115200);
   // Note: No delay needed here. For USB CDC boards, log_init() starts a timeout window
-  // that allows up to 5 seconds for USB enumeration. This prevents boot hangs when no
+  // that allows up to ~1 second for USB enumeration/host consumption. This prevents boot hangs when no
   // serial monitor is attached, while still capturing logs when one is connected.
 
   // Register WiFi event handlers for connection lifecycle
