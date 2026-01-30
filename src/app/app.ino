@@ -78,7 +78,9 @@ void setup()
 
   // Initialize logger (wraps Serial for web streaming)
   log_init(115200);
-  delay(1000);
+  // Note: No delay needed here. For USB CDC boards, log_init() starts a timeout window
+  // that allows up to ~1 second for USB enumeration/host consumption. This prevents boot hangs when no
+  // serial monitor is attached, while still capturing logs when one is connected.
 
   // Register WiFi event handlers for connection lifecycle
   WiFi.onEvent(onWiFiConnected, ARDUINO_EVENT_WIFI_STA_CONNECTED);
